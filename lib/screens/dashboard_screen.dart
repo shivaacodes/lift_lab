@@ -2,12 +2,62 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:lift_lab/models/user_model.dart';
+import 'package:lift_lab/services/auth_service.dart';
+import 'package:lift_lab/services/database_service.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final AuthService _authService = AuthService();
+  final DatabaseService _databaseService = DatabaseService();
+  UserModel? _userProfile;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final user = _authService.currentUser;
+    if (user != null) {
+      try {
+        final profile = await _databaseService.getUserProfile(user.uid);
+        if (mounted) {
+          setState(() {
+            _userProfile = profile;
+            _isLoading = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } else {
+      // Load Mock Profile for testing
+      if (mounted) {
+        setState(() {
+          _userProfile = _databaseService.getMockUserProfile();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -15,6 +65,18 @@ class DashboardScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                'Welcome Back',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey,
+                ),
+              ),
+              Text(
+                _userProfile?.email ?? 'User',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 16),
               _buildDailyScore(context),
               const SizedBox(height: 32),
@@ -119,8 +181,8 @@ class DashboardScreen extends StatelessWidget {
         children: [
           _SummaryCard(
             title: 'Training',
-            subtitle: 'Push Day',
-            value: 'Volume: 12,400kg',
+            subtitle: _userProfile?.goal ?? 'Push Day',
+            value: 'Volume: -',
             icon: Icons.fitness_center,
             color: Colors.blueAccent,
           ),
@@ -128,7 +190,7 @@ class DashboardScreen extends StatelessWidget {
           _SummaryCard(
             title: 'Nutrition',
             subtitle: 'Protein',
-            value: '142g / 180g',
+            value: '142g / ${( _userProfile?.metrics['weight'] ?? 80) * 2.2 }g',
             icon: Icons.restaurant,
             color: Colors.greenAccent,
           ),
@@ -136,7 +198,7 @@ class DashboardScreen extends StatelessWidget {
           _SummaryCard(
             title: 'Recovery',
             subtitle: 'Sleep',
-            value: '6h 40m',
+            value: '${_userProfile?.lifestyle['sleep'] ?? 7}h',
             icon: Icons.bed,
             color: Colors.purpleAccent,
           ),
@@ -158,13 +220,13 @@ class DashboardScreen extends StatelessWidget {
           _InsightItem(
             icon: Icons.warning_amber_rounded,
             color: Colors.amber,
-            text: 'You under-slept. Consider reducing training volume by 10% today.',
+            text: 'You under-slept based on your profile settings.',
           ),
           const Divider(color: Colors.white10),
           _InsightItem(
             icon: Icons.info_outline,
             color: Colors.blue,
-            text: 'Protein deficit detected. Add a shake to your post-workout meal.',
+            text: 'Protein target based on body weight: ${((_userProfile?.metrics['weight'] ?? 0) * 2.2).toStringAsFixed(0)}g.',
           ),
         ],
       ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lift_lab/services/auth_service.dart';
+import 'package:lift_lab/services/database_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -10,12 +12,58 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   bool _isLogin = true;
-  final _emailController = TextEditingController(text: 'user@liftlab.com');
+  final _emailController = TextEditingController(text: 'test@liftlab.com');
   final _passwordController = TextEditingController(text: 'password123');
+  final AuthService _authService = AuthService();
+  final DatabaseService _databaseService = DatabaseService();
+  bool _isLoading = false;
 
-  void _submit() {
-    // Mock authentication logic
-    Navigator.of(context).pushReplacementNamed('/onboarding');
+  Future<void> _submit() async {
+    setState(() => _isLoading = true);
+    
+    // Mock Login Bypass
+    if (_emailController.text.trim() == 'test@liftlab.com') {
+      await Future.delayed(const Duration(milliseconds: 500)); // Simulate network
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
+      return;
+    }
+
+    try {
+      if (_isLogin) {
+        await _authService.signInWithEmail(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+        // Check if user has profile, if not go to onboarding
+         if (mounted) {
+           final user = _authService.currentUser;
+           if (user != null) {
+             final profile = await _databaseService.getUserProfile(user.uid);
+             Navigator.of(context).pushReplacementNamed(
+               profile != null ? '/home' : '/onboarding'
+             );
+           }
+         }
+      } else {
+        await _authService.signUpWithEmail(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed('/onboarding');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -73,8 +121,10 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: _submit,
-                child: Text(_isLogin ? 'LOGIN' : 'SIGN UP'),
+                onPressed: _isLoading ? null : _submit,
+                child: _isLoading 
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) 
+                  : Text(_isLogin ? 'LOGIN' : 'SIGN UP'),
               ),
               const SizedBox(height: 16),
               TextButton(

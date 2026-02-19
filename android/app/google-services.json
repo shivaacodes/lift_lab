@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "919980264785",
+    "project_id": "liftlab-9de39",
+    "storage_bucket": "liftlab-9de39.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:919980264785:android:0d1f33a1d8e6011d4cd770",
+        "android_client_info": {
+          "package_name": "com.example.lift_lab"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3tVnBv5wKfALtUTeTEag2sq79a8l4cS8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
