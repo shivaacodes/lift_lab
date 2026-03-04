@@ -12,24 +12,14 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   bool _isLogin = true;
-  final _emailController = TextEditingController(text: 'test@liftlab.com');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
   final DatabaseService _databaseService = DatabaseService();
   bool _isLoading = false;
 
   Future<void> _submit() async {
     setState(() => _isLoading = true);
-    
-    // Mock Login Bypass
-    if (_emailController.text.trim() == 'test@liftlab.com') {
-      await Future.delayed(const Duration(milliseconds: 500)); // Simulate network
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/home');
-      }
-      return;
-    }
-
     try {
       if (_isLogin) {
         await _authService.signInWithEmail(

@@ -32,13 +32,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _finishOnboarding() async {
     setState(() => _isLoading = true);
     final user = _authService.currentUser;
-    
-    // Mock Mode or Unauthenticated
     if (user == null) {
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/home');
-      }
+      if (mounted) setState(() => _isLoading = false);
       return;
     }
 

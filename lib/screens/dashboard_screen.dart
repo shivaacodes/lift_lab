@@ -40,13 +40,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (mounted) setState(() => _isLoading = false);
       }
     } else {
-      // Load Mock Profile for testing
-      if (mounted) {
-        setState(() {
-          _userProfile = _databaseService.getMockUserProfile();
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

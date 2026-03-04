@@ -42,24 +42,4 @@ class DatabaseService {
       throw 'Error logging activity: $e';
     }
   }
-  // Get Mock User Profile (For Testing)
-  UserModel getMockUserProfile() {
-    return UserModel(
-      uid: 'mock_user_123',
-      email: 'test@liftlab.com',
-      goal: 'Hypertrophy',
-      experienceLevel: 'Intermediate (1-3 years)',
-      metrics: {
-        'age': 25,
-        'height': 180.0,
-        'weight': 75.0,
-        'bodyFat': 15.0,
-      },
-      lifestyle: {
-        'sleep': 7.5,
-        'activityLevel': 'Moderate',
-        'gymAccess': 'Commercial Gym',
-      },
-    );
-  }
 }

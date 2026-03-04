@@ -26,10 +26,7 @@ class DefaultFirebaseOptions {
           'you can reconfigure this by running the FlutterFire CLI again.',
         );
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -60,5 +57,14 @@ class DefaultFirebaseOptions {
     authDomain: 'liftlab-9de39.firebaseapp.com',
     storageBucket: 'liftlab-9de39.appspot.com',
     measurementId: 'G-3Z6165QK99',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyAapGwHfR3hzx3WWAcAAy9qOQe3Nl0AAxs',
+    appId: '1:919980264785:ios:00d02c358bf3a5774cd770',
+    messagingSenderId: '919980264785',
+    projectId: 'liftlab-9de39',
+    storageBucket: 'liftlab-9de39.firebasestorage.app',
+    iosBundleId: 'com.shivasajay.liftlab',
   );
 }
