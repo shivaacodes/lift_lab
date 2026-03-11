@@ -3,16 +3,19 @@ import '../theme_provider.dart';
 
 class ChatInterface extends StatefulWidget {
   final bool isTypingIndicator;
-  const ChatInterface({Key? key, this.isTypingIndicator = false}) : super(key: key);
+  const ChatInterface({super.key, this.isTypingIndicator = false});
 
   @override
-  _ChatInterfaceState createState() => _ChatInterfaceState();
+  State<ChatInterface> createState() => _ChatInterfaceState();
 }
 
 class _ChatInterfaceState extends State<ChatInterface> {
   final TextEditingController _controller = TextEditingController();
   final List<Map<String, dynamic>> _messages = [
-    {'text': 'Welcome! How can I help with your training today?', 'isUser': false},
+    {
+      'text': 'Welcome! How can I help with your training today?',
+      'isUser': false,
+    },
   ];
 
   void _sendMessage() {
@@ -35,7 +38,14 @@ class _ChatInterfaceState extends State<ChatInterface> {
       child: Column(
         children: [
           const SizedBox(height: 12),
-          Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
           const SizedBox(height: 12),
           Expanded(
             child: ListView.builder(
@@ -47,9 +57,18 @@ class _ChatInterfaceState extends State<ChatInterface> {
                     alignment: Alignment.centerLeft,
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(color: AppTheme.primaryColor.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
-                      child: const Text('typing...', style: TextStyle(color: AppTheme.textColor)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'typing...',
+                        style: TextStyle(color: AppTheme.textColor),
+                      ),
                     ),
                   );
                 }
@@ -57,13 +76,22 @@ class _ChatInterfaceState extends State<ChatInterface> {
                 final msg = _messages[index];
                 final isUser = msg['isUser'] as bool;
                 return Align(
-                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment: isUser
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
                   child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                    ),
                     decoration: BoxDecoration(
-                      color: isUser ? AppTheme.primaryColor.withOpacity(0.85) : AppTheme.primaryColor.withOpacity(0.18),
+                      color: isUser
+                          ? AppTheme.primaryColor.withValues(alpha: 0.85)
+                          : AppTheme.primaryColor.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(14),
                         topRight: const Radius.circular(14),
@@ -71,7 +99,10 @@ class _ChatInterfaceState extends State<ChatInterface> {
                         bottomRight: Radius.circular(isUser ? 4 : 14),
                       ),
                     ),
-                    child: Text(msg['text'], style: TextStyle(color: AppTheme.textColor)),
+                    child: Text(
+                      msg['text'],
+                      style: TextStyle(color: AppTheme.textColor),
+                    ),
                   ),
                 );
               },
@@ -84,19 +115,29 @@ class _ChatInterfaceState extends State<ChatInterface> {
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(30)),
+                    decoration: BoxDecoration(
+                      color: Colors.white12,
+                      borderRadius: BorderRadius.circular(30),
+                    ),
                     child: Row(
                       children: [
                         Expanded(
                           child: TextField(
                             controller: _controller,
                             style: const TextStyle(color: AppTheme.textColor),
-                            decoration: const InputDecoration(border: InputBorder.none, hintText: 'Type a message', hintStyle: TextStyle(color: Colors.white54)),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              hintText: 'Type a message',
+                              hintStyle: TextStyle(color: Colors.white54),
+                            ),
                           ),
                         ),
                         IconButton(
                           onPressed: _sendMessage,
-                          icon: const Icon(Icons.send, color: AppTheme.primaryColor),
+                          icon: const Icon(
+                            Icons.send,
+                            color: AppTheme.primaryColor,
+                          ),
                         ),
                       ],
                     ),

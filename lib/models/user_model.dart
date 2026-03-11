@@ -1,6 +1,8 @@
 class UserModel {
   final String uid;
   final String email;
+  final String name;
+  final String? profileImageUrl;
   final String goal;
   final String experienceLevel;
   final Map<String, dynamic> metrics; // age, height, weight, bodyFat
@@ -9,6 +11,8 @@ class UserModel {
   UserModel({
     required this.uid,
     required this.email,
+    required this.name,
+    this.profileImageUrl,
     required this.goal,
     required this.experienceLevel,
     required this.metrics,
@@ -19,6 +23,8 @@ class UserModel {
     return {
       'uid': uid,
       'email': email,
+      'name': name,
+      'profileImageUrl': profileImageUrl,
       'goal': goal,
       'experienceLevel': experienceLevel,
       'metrics': metrics,
@@ -31,6 +37,8 @@ class UserModel {
     return UserModel(
       uid: map['uid'] ?? '',
       email: map['email'] ?? '',
+      name: map['name'] ?? '',
+      profileImageUrl: map['profileImageUrl'],
       goal: map['goal'] ?? '',
       experienceLevel: map['experienceLevel'] ?? '',
       metrics: Map<String, dynamic>.from(map['metrics'] ?? {}),

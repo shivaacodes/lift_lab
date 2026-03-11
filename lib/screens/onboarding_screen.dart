@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lift_lab/models/user_model.dart';
 import 'package:lift_lab/services/auth_service.dart';
 import 'package:lift_lab/services/database_service.dart';
+import 'package:lift_lab/services/haptics_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -11,45 +12,111 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final PageController _pageController = PageController();
-  final DatabaseService _databaseService = DatabaseService();
-  final AuthService _authService = AuthService();
-  
+  final _pageController = PageController();
+  final _databaseService = DatabaseService();
+  final _authService = AuthService();
+
   int _currentPage = 0;
   bool _isLoading = false;
 
-  // Data
   String _goal = 'Hypertrophy';
   String _experience = 'Beginner (0-1 years)';
   final _ageController = TextEditingController();
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
   final _bodyFatController = TextEditingController();
-  final _sleepController = TextEditingController();
+  final _sleepController = TextEditingController(text: '7');
   String _activityLevel = 'Moderate';
   String _gymAccess = 'Commercial Gym';
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _ageController.dispose();
+    _heightController.dispose();
+    _weightController.dispose();
+    _bodyFatController.dispose();
+    _sleepController.dispose();
+    super.dispose();
+  }
+
+  bool _validateCurrentStep() {
+    if (_currentPage != 2 && _currentPage != 3) {
+      return true;
+    }
+
+    if (_currentPage == 2) {
+      final age = int.tryParse(_ageController.text.trim());
+      final height = double.tryParse(_heightController.text.trim());
+      final weight = double.tryParse(_weightController.text.trim());
+      final bodyFatRaw = _bodyFatController.text.trim();
+      final bodyFat = bodyFatRaw.isEmpty ? null : double.tryParse(bodyFatRaw);
+
+      if (age == null || age < 13 || age > 100) {
+        _showValidationError('Enter a valid age between 13 and 100.');
+        return false;
+      }
+      if (height == null || height < 100 || height > 250) {
+        _showValidationError('Enter a valid height in cm.');
+        return false;
+      }
+      if (weight == null || weight < 30 || weight > 300) {
+        _showValidationError('Enter a valid weight in kg.');
+        return false;
+      }
+      if (bodyFatRaw.isNotEmpty &&
+          (bodyFat == null || bodyFat <= 0 || bodyFat >= 80)) {
+        _showValidationError('Body fat should be between 1 and 79.');
+        return false;
+      }
+      return true;
+    }
+
+    final sleep = double.tryParse(_sleepController.text.trim());
+    if (sleep == null || sleep < 3 || sleep > 14) {
+      _showValidationError('Enter average sleep between 3 and 14 hours.');
+      return false;
+    }
+    return true;
+  }
+
+  void _showValidationError(String message) {
+    HapticsService.error();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _finishOnboarding() async {
+    if (!_validateCurrentStep()) return;
+
     setState(() => _isLoading = true);
     final user = _authService.currentUser;
     if (user == null) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showValidationError('Your session expired. Please log in again.');
+      }
       return;
     }
 
     final userModel = UserModel(
       uid: user.uid,
       email: user.email ?? '',
+      name: (user.email ?? 'Member').split('@').first,
+      profileImageUrl: null,
       goal: _goal,
       experienceLevel: _experience,
       metrics: {
-        'age': int.tryParse(_ageController.text) ?? 0,
-        'height': double.tryParse(_heightController.text) ?? 0.0,
-        'weight': double.tryParse(_weightController.text) ?? 0.0,
-        'bodyFat': double.tryParse(_bodyFatController.text),
+        'age': int.parse(_ageController.text.trim()),
+        'height': double.parse(_heightController.text.trim()),
+        'weight': double.parse(_weightController.text.trim()),
+        'bodyFat': _bodyFatController.text.trim().isEmpty
+            ? null
+            : double.parse(_bodyFatController.text.trim()),
       },
       lifestyle: {
-        'sleep': double.tryParse(_sleepController.text) ?? 7.0,
+        'sleep': double.parse(_sleepController.text.trim()),
         'activityLevel': _activityLevel,
         'gymAccess': _gymAccess,
       },
@@ -58,95 +125,159 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     try {
       await _databaseService.saveUserProfile(userModel);
       if (mounted) {
+        HapticsService.success();
         Navigator.of(context).pushReplacementNamed('/home');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        _showValidationError(e.toString());
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
-  void _nextPage() {
+  Future<void> _nextPage() async {
+    if (!_validateCurrentStep()) return;
+
     if (_currentPage < 3) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+      HapticsService.selection();
+      await _pageController.nextPage(
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
       );
-    } else {
-      _finishOnboarding();
+      return;
     }
+
+    await _finishOnboarding();
+  }
+
+  Future<void> _previousPage() async {
+    if (_currentPage == 0) return;
+    HapticsService.light();
+    await _pageController.previousPage(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final progress = (_currentPage + 1) / 4;
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Set up your plan',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Step ${_currentPage + 1} of 4',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurface.withValues(alpha: 0.72),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      minHeight: 8,
+                      value: progress,
+                      backgroundColor: colors.onSurface.withValues(alpha: 0.12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               child: PageView(
                 controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(), // Prevent swiping to force validation
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPage = index;
-                  });
-                },
+                physics: const NeverScrollableScrollPhysics(),
+                onPageChanged: (index) => setState(() => _currentPage = index),
                 children: [
-                  OnboardingGoalPage(
+                  _GoalStep(
                     selectedGoal: _goal,
-                    onSelect: (val) => setState(() => _goal = val),
+                    onSelect: (value) {
+                      HapticsService.selection();
+                      setState(() => _goal = value);
+                    },
                   ),
-                  OnboardingExperiencePage(
+                  _ExperienceStep(
                     selectedExperience: _experience,
-                    onSelect: (val) => setState(() => _experience = val),
+                    onSelect: (value) {
+                      HapticsService.selection();
+                      setState(() => _experience = value);
+                    },
                   ),
-                  OnboardingMetricsPage(
+                  _MetricsStep(
                     ageController: _ageController,
                     heightController: _heightController,
                     weightController: _weightController,
                     bodyFatController: _bodyFatController,
                   ),
-                  OnboardingLifestylePage(
+                  _LifestyleStep(
                     sleepController: _sleepController,
                     activityLevel: _activityLevel,
                     gymAccess: _gymAccess,
-                    onActivityChanged: (val) => setState(() => _activityLevel = val!),
-                    onGymChanged: (val) => setState(() => _gymAccess = val!),
+                    onActivityChanged: (value) {
+                      if (value != null) {
+                        HapticsService.selection();
+                        setState(() => _activityLevel = value);
+                      }
+                    },
+                    onGymChanged: (value) {
+                      if (value != null) {
+                        HapticsService.selection();
+                        setState(() => _gymAccess = value);
+                      }
+                    },
                   ),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                   // Page indicator
-                  Row(
-                    children: List.generate(
-                      4,
-                      (index) => Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _currentPage == index
-                              ? Theme.of(context).colorScheme.primary
-                              : Colors.grey,
-                        ),
-                      ),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: (_currentPage > 0 && !_isLoading)
+                          ? () {
+                              _previousPage();
+                            }
+                          : null,
+                      child: const Text('BACK'),
                     ),
                   ),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _nextPage,
-                    child: _isLoading 
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) 
-                      : Text(_currentPage == 3 ? 'FINISH' : 'NEXT'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              HapticsService.medium();
+                              _nextPage();
+                            },
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(_currentPage == 3 ? 'FINISH' : 'NEXT'),
+                    ),
                   ),
                 ],
               ),
@@ -158,55 +289,77 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-class OnboardingGoalPage extends StatelessWidget {
-  final String selectedGoal;
-  final Function(String) onSelect;
+class _GoalStep extends StatelessWidget {
+  const _GoalStep({required this.selectedGoal, required this.onSelect});
 
-  const OnboardingGoalPage({super.key, required this.selectedGoal, required this.onSelect});
+  final String selectedGoal;
+  final ValueChanged<String> onSelect;
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final options = const [
+      ('Hypertrophy', Icons.fitness_center_rounded),
+      ('Strength', Icons.flash_on_rounded),
+      ('Fat Loss', Icons.local_fire_department_rounded),
+      ('Longevity', Icons.favorite_rounded),
+    ];
+
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(20),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'What is your primary goal?',
-            style: Theme.of(context).textTheme.headlineMedium,
-            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 32),
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            alignment: WrapAlignment.center,
-            children: [
-              _GoalCard(
-                icon: Icons.fitness_center, 
-                label: 'Hypertrophy', 
-                isSelected: selectedGoal == 'Hypertrophy', 
-                onTap: () => onSelect('Hypertrophy'),
+          const SizedBox(height: 16),
+          Expanded(
+            child: GridView.builder(
+              itemCount: options.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.2,
               ),
-              _GoalCard(
-                icon: Icons.bolt, 
-                label: 'Strength', 
-                isSelected: selectedGoal == 'Strength', 
-                onTap: () => onSelect('Strength'),
-              ),
-              _GoalCard(
-                icon: Icons.local_fire_department, 
-                label: 'Fat Loss', 
-                isSelected: selectedGoal == 'Fat Loss', 
-                onTap: () => onSelect('Fat Loss'),
-              ),
-              _GoalCard(
-                icon: Icons.favorite, 
-                label: 'Longevity', 
-                isSelected: selectedGoal == 'Longevity', 
-                onTap: () => onSelect('Longevity'),
-              ),
-            ],
+              itemBuilder: (context, index) {
+                final (label, icon) = options[index];
+                final selected = selectedGoal == label;
+                return InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => onSelect(label),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: selected
+                            ? colors.primary
+                            : colors.onSurface.withValues(alpha: 0.24),
+                        width: selected ? 2 : 1,
+                      ),
+                      color: selected
+                          ? colors.primary.withValues(alpha: 0.10)
+                          : colors.onSurface.withValues(alpha: 0.03),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(icon, color: colors.primary),
+                        const Spacer(),
+                        Text(
+                          label,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -214,191 +367,115 @@ class OnboardingGoalPage extends StatelessWidget {
   }
 }
 
-class _GoalCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _GoalCard({
-    required this.icon, 
-    required this.label, 
-    required this.isSelected, 
-    required this.onTap,
+class _ExperienceStep extends StatelessWidget {
+  const _ExperienceStep({
+    required this.selectedExperience,
+    required this.onSelect,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 140,
-        height: 140,
-        decoration: BoxDecoration(
-          color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.2) : theme.cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? theme.colorScheme.primary : Colors.white10,
-            width: 2,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon, 
-              size: 48, 
-              color: isSelected ? theme.colorScheme.primary : Colors.grey,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              label, 
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : Colors.grey,
-              )
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class OnboardingExperiencePage extends StatelessWidget {
   final String selectedExperience;
-  final Function(String) onSelect;
-
-  const OnboardingExperiencePage({super.key, required this.selectedExperience, required this.onSelect});
+  final ValueChanged<String> onSelect;
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final options = const [
+      'Beginner (0-1 years)',
+      'Intermediate (1-3 years)',
+      'Advanced (3+ years)',
+    ];
+
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(20),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Experience Level',
-            style: Theme.of(context).textTheme.headlineMedium,
-            textAlign: TextAlign.center,
+            'Experience level',
+            style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 32),
-          _ExperienceButton(
-            label: 'Beginner (0-1 years)', 
-            isSelected: selectedExperience == 'Beginner (0-1 years)',
-            onTap: () => onSelect('Beginner (0-1 years)'),
-          ),
-          const SizedBox(height: 16),
-          _ExperienceButton(
-            label: 'Intermediate (1-3 years)', 
-            isSelected: selectedExperience == 'Intermediate (1-3 years)',
-            onTap: () => onSelect('Intermediate (1-3 years)'),
-          ),
-          const SizedBox(height: 16),
-          _ExperienceButton(
-            label: 'Advanced (3+ years)', 
-            isSelected: selectedExperience == 'Advanced (3+ years)',
-            onTap: () => onSelect('Advanced (3+ years)'),
-          ),
+          const SizedBox(height: 14),
+          ...options.map((option) {
+            final selected = option == selectedExperience;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: OutlinedButton(
+                onPressed: () => onSelect(option),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 54),
+                  backgroundColor: selected
+                      ? colors.primary.withValues(alpha: 0.10)
+                      : null,
+                  side: BorderSide(
+                    color: selected
+                        ? colors.primary
+                        : colors.onSurface.withValues(alpha: 0.24),
+                    width: selected ? 2 : 1,
+                  ),
+                ),
+                child: Text(option),
+              ),
+            );
+          }),
         ],
       ),
     );
   }
 }
 
-class _ExperienceButton extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ExperienceButton({
-    required this.label, 
-    required this.isSelected, 
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          backgroundColor: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.1) : null,
-          side: BorderSide(
-            color: isSelected ? theme.colorScheme.primary : Colors.grey,
-            width: isSelected ? 2 : 1,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Text(
-          label, 
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white70, 
-            fontSize: 16,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          )
-        ),
-      ),
-    );
-  }
-}
-
-class OnboardingMetricsPage extends StatelessWidget {
-  final TextEditingController ageController;
-  final TextEditingController heightController;
-  final TextEditingController weightController;
-  final TextEditingController bodyFatController;
-
-  const OnboardingMetricsPage({
-    super.key,
+class _MetricsStep extends StatelessWidget {
+  const _MetricsStep({
     required this.ageController,
     required this.heightController,
     required this.weightController,
     required this.bodyFatController,
   });
 
+  final TextEditingController ageController;
+  final TextEditingController heightController;
+  final TextEditingController weightController;
+  final TextEditingController bodyFatController;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.all(20),
+      child: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         children: [
-          Text(
-            'Body Metrics',
-            style: Theme.of(context).textTheme.headlineMedium,
-            textAlign: TextAlign.center,
+          Text('Body metrics', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 14),
+          _NumberField(
+            controller: ageController,
+            label: 'Age',
+            hint: 'e.g. 25',
           ),
-          const SizedBox(height: 32),
-          TextField(controller: ageController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Age')),
-          const SizedBox(height: 16),
-          TextField(controller: heightController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Height (cm)')),
-          const SizedBox(height: 16),
-          TextField(controller: weightController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Weight (kg)')),
-          const SizedBox(height: 16),
-          TextField(controller: bodyFatController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Body Fat % (Optional)')),
+          const SizedBox(height: 12),
+          _NumberField(
+            controller: heightController,
+            label: 'Height (cm)',
+            hint: 'e.g. 175',
+          ),
+          const SizedBox(height: 12),
+          _NumberField(
+            controller: weightController,
+            label: 'Weight (kg)',
+            hint: 'e.g. 72',
+          ),
+          const SizedBox(height: 12),
+          _NumberField(
+            controller: bodyFatController,
+            label: 'Body Fat % (Optional)',
+            hint: 'e.g. 16',
+          ),
         ],
       ),
     );
   }
 }
 
-class OnboardingLifestylePage extends StatelessWidget {
-  final TextEditingController sleepController;
-  final String activityLevel;
-  final String gymAccess;
-  final Function(String?) onActivityChanged;
-  final Function(String?) onGymChanged;
-
-  const OnboardingLifestylePage({
-    super.key,
+class _LifestyleStep extends StatelessWidget {
+  const _LifestyleStep({
     required this.sleepController,
     required this.activityLevel,
     required this.gymAccess,
@@ -406,46 +483,81 @@ class OnboardingLifestylePage extends StatelessWidget {
     required this.onGymChanged,
   });
 
+  final TextEditingController sleepController;
+  final String activityLevel;
+  final String gymAccess;
+  final ValueChanged<String?> onActivityChanged;
+  final ValueChanged<String?> onGymChanged;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.all(20),
+      child: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         children: [
-          Text(
-            'Lifestyle Checklist',
-            style: Theme.of(context).textTheme.headlineMedium,
-            textAlign: TextAlign.center,
+          Text('Lifestyle', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 14),
+          _NumberField(
+            controller: sleepController,
+            label: 'Average Sleep (hours)',
+            hint: 'e.g. 7.5',
           ),
-          const SizedBox(height: 32),
-           TextField(controller: sleepController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Average Sleep (hours)')),
-           const SizedBox(height: 16),
-           DropdownButtonFormField<String>(
-             decoration: const InputDecoration(labelText: 'Activity Level'),
-             value: activityLevel,
-             items: const [
-               DropdownMenuItem(value: 'Sedentary', child: Text('Sedentary')),
-               DropdownMenuItem(value: 'Light', child: Text('Lightly Active')),
-               DropdownMenuItem(value: 'Moderate', child: Text('Moderately Active')),
-               DropdownMenuItem(value: 'Active', child: Text('Very Active')),
-             ],
-             onChanged: onActivityChanged,
-           ),
-           const SizedBox(height: 16),
-           DropdownButtonFormField<String>(
-             decoration: const InputDecoration(labelText: 'Gym Access'),
-             value: gymAccess,
-             items: const [
-               DropdownMenuItem(value: 'Commercial Gym', child: Text('Commercial Gym')),
-               DropdownMenuItem(value: 'Home Gym', child: Text('Home Gym')),
-               DropdownMenuItem(value: 'Bodyweight', child: Text('Bodyweight Only')),
-             ],
-             onChanged: onGymChanged,
-           ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(labelText: 'Activity Level'),
+            initialValue: activityLevel,
+            items: const [
+              DropdownMenuItem(value: 'Sedentary', child: Text('Sedentary')),
+              DropdownMenuItem(value: 'Light', child: Text('Lightly Active')),
+              DropdownMenuItem(
+                value: 'Moderate',
+                child: Text('Moderately Active'),
+              ),
+              DropdownMenuItem(value: 'Active', child: Text('Very Active')),
+            ],
+            onChanged: onActivityChanged,
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(labelText: 'Gym Access'),
+            initialValue: gymAccess,
+            items: const [
+              DropdownMenuItem(
+                value: 'Commercial Gym',
+                child: Text('Commercial Gym'),
+              ),
+              DropdownMenuItem(value: 'Home Gym', child: Text('Home Gym')),
+              DropdownMenuItem(
+                value: 'Bodyweight',
+                child: Text('Bodyweight Only'),
+              ),
+            ],
+            onChanged: onGymChanged,
+          ),
         ],
       ),
     );
   }
 }
 
+class _NumberField extends StatelessWidget {
+  const _NumberField({
+    required this.controller,
+    required this.label,
+    required this.hint,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(labelText: label, hintText: hint),
+    );
+  }
+}

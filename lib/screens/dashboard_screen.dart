@@ -47,9 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -61,9 +59,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Text(
                 'Welcome Back',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
               ),
               Text(
                 _userProfile?.email ?? 'User',
@@ -76,18 +74,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 32),
               Text(
                 'Today\'s Summary',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               _buildSummaryCards(context),
               const SizedBox(height: 32),
               Text(
                 'Insights',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               _buildInsightsPanel(context),
@@ -134,7 +132,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Text(
                         '82',
-                        style: GoogleFonts.outfit(
+                        style: GoogleFonts.poppins(
                           fontSize: 48,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -142,7 +140,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       Text(
                         'LIFT SCORE',
-                        style: GoogleFonts.outfit(
+                        style: GoogleFonts.poppins(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: Colors.grey,
@@ -158,9 +156,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 16),
           Text(
             'Based on sleep, training, and nutrition adherence',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.grey,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.grey),
           ),
         ],
       ),
@@ -177,15 +175,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             title: 'Training',
             subtitle: _userProfile?.goal ?? 'Push Day',
             value: 'Volume: -',
-            icon: Icons.fitness_center,
+            icon: Icons.fitness_center_rounded,
             color: Colors.blueAccent,
           ),
           const SizedBox(width: 16),
           _SummaryCard(
             title: 'Nutrition',
             subtitle: 'Protein',
-            value: '142g / ${( _userProfile?.metrics['weight'] ?? 80) * 2.2 }g',
-            icon: Icons.restaurant,
+            value: '142g / ${(_userProfile?.metrics['weight'] ?? 80) * 2.2}g',
+            icon: Icons.dining_rounded,
             color: Colors.greenAccent,
           ),
           const SizedBox(width: 16),
@@ -193,7 +191,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             title: 'Recovery',
             subtitle: 'Sleep',
             value: '${_userProfile?.lifestyle['sleep'] ?? 7}h',
-            icon: Icons.bed,
+            icon: Icons.bedtime_rounded,
             color: Colors.purpleAccent,
           ),
         ],
@@ -218,9 +216,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const Divider(color: Colors.white10),
           _InsightItem(
-            icon: Icons.info_outline,
+            icon: Icons.info_rounded,
             color: Colors.blue,
-            text: 'Protein target based on body weight: ${((_userProfile?.metrics['weight'] ?? 0) * 2.2).toStringAsFixed(0)}g.',
+            text:
+                'Protein target based on body weight: ${((_userProfile?.metrics['weight'] ?? 0) * 2.2).toStringAsFixed(0)}g.',
           ),
         ],
       ),
@@ -283,10 +282,7 @@ class _SummaryCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ],
           ),
@@ -314,10 +310,7 @@ class _InsightItem extends StatelessWidget {
         Icon(icon, color: color, size: 24),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(fontSize: 13, height: 1.4),
-          ),
+          child: Text(text, style: const TextStyle(fontSize: 13, height: 1.4)),
         ),
       ],
     );

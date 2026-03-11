@@ -61,7 +61,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAapGwHfR3hzx3WWAcAAy9qOQe3Nl0AAxs',
-    appId: '1:919980264785:ios:00d02c358bf3a5774cd770',
+    appId: '1:919980264785:ios:785ce7ac2857d6ad4cd770',
     messagingSenderId: '919980264785',
     projectId: 'liftlab-9de39',
     storageBucket: 'liftlab-9de39.firebasestorage.app',

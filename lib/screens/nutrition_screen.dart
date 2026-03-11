@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 
-
 class NutritionScreen extends StatelessWidget {
   const NutritionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nutrition'),
-      ),
+      appBar: AppBar(title: const Text('Nutrition')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -19,18 +16,18 @@ class NutritionScreen extends StatelessWidget {
             const SizedBox(height: 32),
             Text(
               'Meal Plan',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             _buildMealPlanSection(context),
             const SizedBox(height: 32),
             Text(
               'Adherence',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             _buildComplianceBar(context),
@@ -45,17 +42,45 @@ class NutritionScreen extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: _MacroCard(label: 'Calories', value: '2,450', unit: 'kcal', color: Colors.orange)),
+            Expanded(
+              child: _MacroCard(
+                label: 'Calories',
+                value: '2,450',
+                unit: 'kcal',
+                color: Colors.orange,
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _MacroCard(label: 'Protein', value: '180', unit: 'g', color: Colors.blue)),
+            Expanded(
+              child: _MacroCard(
+                label: 'Protein',
+                value: '180',
+                unit: 'g',
+                color: Colors.blue,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _MacroCard(label: 'Carbs', value: '280', unit: 'g', color: Colors.green)),
+            Expanded(
+              child: _MacroCard(
+                label: 'Carbs',
+                value: '280',
+                unit: 'g',
+                color: Colors.green,
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _MacroCard(label: 'Fat', value: '75', unit: 'g', color: Colors.red)),
+            Expanded(
+              child: _MacroCard(
+                label: 'Fat',
+                value: '75',
+                unit: 'g',
+                color: Colors.red,
+              ),
+            ),
           ],
         ),
       ],
@@ -172,7 +197,10 @@ class _MacroCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              Text(unit, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(
+                unit,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ],
           ),
         ],
@@ -220,7 +248,10 @@ class _MealCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
                 Text(
                   description,
@@ -232,8 +263,14 @@ class _MealCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(calories, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(protein, style: const TextStyle(color: Colors.green, fontSize: 12)),
+              Text(
+                calories,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                protein,
+                style: const TextStyle(color: Colors.green, fontSize: 12),
+              ),
             ],
           ),
         ],

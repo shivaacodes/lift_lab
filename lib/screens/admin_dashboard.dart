@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../theme_provider.dart';
 
 class AdminDashboard extends StatefulWidget {
-  const AdminDashboard({Key? key}) : super(key: key);
+  const AdminDashboard({super.key});
 
   @override
-  _AdminDashboardState createState() => _AdminDashboardState();
+  State<AdminDashboard> createState() => _AdminDashboardState();
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
@@ -26,54 +26,95 @@ class _AdminDashboardState extends State<AdminDashboard> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Admin Dashboard'),
-          bottom: const TabBar(tabs: [Tab(text: 'Members'), Tab(text: 'Trainers')]),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Members'),
+              Tab(text: 'Trainers'),
+            ],
+          ),
         ),
-        body: TabBarView(children: [
-          // Members Tab
-          ListView.builder(
-            itemCount: _members.length,
-            itemBuilder: (context, i) => ListTile(
-              title: Text(_members[i], style: const TextStyle(color: AppTheme.textColor)),
-              trailing: IconButton(onPressed: () {}, icon: const Icon(Icons.delete, color: Colors.redAccent)),
+        body: TabBarView(
+          children: [
+            // Members Tab
+            ListView.builder(
+              itemCount: _members.length,
+              itemBuilder: (context, i) => ListTile(
+                title: Text(
+                  _members[i],
+                  style: const TextStyle(color: AppTheme.textColor),
+                ),
+                trailing: IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                ),
+              ),
             ),
-          ),
 
-          // Trainers Tab
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      children: [
-                        TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
-                        const SizedBox(height: 8),
-                        TextField(controller: _bioCtrl, decoration: const InputDecoration(labelText: 'Bio')),
-                        const SizedBox(height: 8),
-                        TextField(controller: _specCtrl, decoration: const InputDecoration(labelText: 'Specialty')),
-                        const SizedBox(height: 12),
-                        ElevatedButton(onPressed: () {}, child: const Text('Add Trainer')),
-                      ],
+            // Trainers Tab
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                children: [
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: _nameCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Name',
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _bioCtrl,
+                            decoration: const InputDecoration(labelText: 'Bio'),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _specCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Specialty',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: () {},
+                            child: const Text('Add Trainer'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _trainers.length,
-                    itemBuilder: (context, i) => ListTile(
-                      title: Text(_trainers[i]['name']!, style: const TextStyle(color: AppTheme.textColor)),
-                      subtitle: Text(_trainers[i]['specialty']!, style: const TextStyle(color: AppTheme.textColor)),
-                      trailing: IconButton(onPressed: () {}, icon: const Icon(Icons.edit, color: AppTheme.primaryColor)),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _trainers.length,
+                      itemBuilder: (context, i) => ListTile(
+                        title: Text(
+                          _trainers[i]['name']!,
+                          style: const TextStyle(color: AppTheme.textColor),
+                        ),
+                        subtitle: Text(
+                          _trainers[i]['specialty']!,
+                          style: const TextStyle(color: AppTheme.textColor),
+                        ),
+                        trailing: IconButton(
+                          onPressed: () {},
+                          icon: const Icon(
+                            Icons.edit,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ]),
+          ],
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lift_lab/services/database_service.dart';
 
 class TrainingScreen extends StatelessWidget {
   const TrainingScreen({super.key});
@@ -6,9 +7,7 @@ class TrainingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Training'),
-      ),
+      appBar: AppBar(title: const Text('Training')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -18,19 +17,78 @@ class TrainingScreen extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               'Today\'s Workout',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             _buildWorkoutCard(context),
+            const SizedBox(height: 100), // Spacing for bottom button
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        label: const Text('Start Workout'),
-        icon: const Icon(Icons.play_arrow),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: _buildAnimatedStartButton(context),
+    );
+  }
+
+  Widget _buildAnimatedStartButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      child: Container(
+        height: 60,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFE5FF6E), Color(0xFFA8E32D)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFE5FF6E).withValues(alpha: 0.3),
+              blurRadius: 15,
+              spreadRadius: 2,
+              offset: const Offset(0, 5),
+            )
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(30),
+            onTap: () {
+              // TODO: Navigate to active workout session
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.black87,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Color(0xFFE5FF6E),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'START WORKOUT',
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -51,32 +109,28 @@ class TrainingScreen extends StatelessWidget {
             children: [
               Text(
                 'Current Split',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
               ),
               const SizedBox(height: 4),
               Text(
                 'Push Pull Legs',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          Container(
-            height: 40,
-            width: 1,
-            color: Colors.white10,
-          ),
+          Container(height: 40, width: 1, color: Colors.white10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Phase',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
               ),
               const SizedBox(height: 4),
               Text(
@@ -94,46 +148,85 @@ class TrainingScreen extends StatelessWidget {
   }
 
   Widget _buildWorkoutCard(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Push Day - A',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+    return FutureBuilder<Map<String, dynamic>>(
+      future: DatabaseService().getDailyRoutine(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return const Center(child: Text('Error loading routine'));
+        }
+
+        final routine = snapshot.data!;
+        final dayName = routine['dayName'] as String;
+        final exercises = routine['exercises'] as List<dynamic>;
+
+        if (exercises.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(
+                child: Text(
+                  'Rest Day! Recover well.',
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-                Icon(Icons.more_horiz, color: Colors.grey),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Estimated Time: 65 mins',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey,
               ),
             ),
-            const Divider(height: 32, color: Colors.white10),
-            _buildExerciseRow(context, 'Bench Press', '4 sets x 6 reps', 'RPE 8'),
-            const SizedBox(height: 16),
-            _buildExerciseRow(context, 'Incline Dumbbell Press', '3 sets x 8-10 reps', 'RPE 9'),
-            const SizedBox(height: 16),
-            _buildExerciseRow(context, 'Lateral Raises', '4 sets x 12-15 reps', 'RPE 9'),
-            const SizedBox(height: 16),
-            _buildExerciseRow(context, 'Tricep Pushdowns', '3 sets x 12 reps', 'RPE 10'),
-          ],
-        ),
-      ),
+          );
+        }
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      dayName,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Icon(Icons.more_horiz, color: Colors.grey),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Estimated Time: 65 mins',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                ),
+                const Divider(height: 32, color: Colors.white10),
+                ...exercises.map((exercise) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: _buildExerciseRow(
+                      context,
+                      exercise['name'],
+                      exercise['details'],
+                      exercise['rpe'],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildExerciseRow(BuildContext context, String name, String details, String rpe) {
+  Widget _buildExerciseRow(
+    BuildContext context,
+    String name,
+    String details,
+    String rpe,
+  ) {
     return Row(
       children: [
         Container(
@@ -143,7 +236,11 @@ class TrainingScreen extends StatelessWidget {
             color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(Icons.fitness_center, color: Theme.of(context).colorScheme.primary, size: 20),
+          child: Icon(
+            Icons.fitness_center,
+            color: Theme.of(context).colorScheme.primary,
+            size: 20,
+          ),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -152,7 +249,10 @@ class TrainingScreen extends StatelessWidget {
             children: [
               Text(
                 name,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
