@@ -20,20 +20,19 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   int _currentIndex = 0;
   final _auth = AuthService();
   final _db = DatabaseService();
-  UserModel? _navProfile;
+  Stream<UserModel?>? _profileStream;
 
   @override
   void initState() {
     super.initState();
-    _refreshNavProfile();
+    final user = _auth.currentUser;
+    if (user != null) {
+      _profileStream = _db.getUserProfileStream(user.uid);
+    }
   }
 
   Future<void> _refreshNavProfile() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-    final profile = await _db.getUserProfile(user.uid);
-    if (!mounted) return;
-    setState(() => _navProfile = profile);
+    // No-op now as it's a stream, but kept for compatibility with callbacks
   }
 
   void _onItemTapped(int index) {
@@ -131,13 +130,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 
-  Widget _buildProfileNavItem() {
+  Widget _buildProfileNavItem(UserModel? profile) {
     final bool isActive = _currentIndex == 4;
     final colors = Theme.of(context).colorScheme;
     final accent = _navAccent(4, colors);
     final user = _auth.currentUser;
-    final imageUrl = _navProfile?.profileImageUrl;
-    final name = _navProfile?.name ?? (user?.email ?? 'user');
+    final imageUrl = profile?.profileImageUrl;
+    final name = profile?.name ?? (user?.email ?? 'user');
     final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
 
     return InkWell(
@@ -195,137 +194,121 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final pages = [
-      HomeTab(
-        onOpenTrain: () => _onItemTapped(1),
-        onOpenNutrition: () => _onItemTapped(2),
-      ),
-      const TrainTab(),
-      const NutritionTab(),
-      const HistoryTab(),
-      ProfileTab(onProfileUpdated: _refreshNavProfile),
-    ];
+    return StreamBuilder<UserModel?>(
+      stream: _profileStream,
+      builder: (context, profileSnapshot) {
+        final profile = profileSnapshot.data;
+        
+        final pages = [
+          HomeTab(
+            profile: profile,
+            onOpenTrain: () => _onItemTapped(1),
+            onOpenNutrition: () => _onItemTapped(2),
+          ),
+          TrainTab(profile: profile),
+          NutritionTab(profile: profile),
+          HistoryTab(profile: profile),
+          ProfileTab(
+            profile: profile,
+            onProfileUpdated: _refreshNavProfile,
+          ),
+        ];
 
-    return Scaffold(
-      extendBody: true,
-      resizeToAvoidBottomInset: false,
-      backgroundColor: colors.surface,
-      body: IndexedStack(index: _currentIndex, children: pages),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openAiCoach,
-        backgroundColor: Color.alphaBlend(
-          colors.primary.withValues(alpha: 0.22),
-          colors.surface,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: colors.primary.withValues(alpha: 0.35)),
-        ),
-        child: Icon(Icons.smart_toy_rounded, color: colors.primary, size: 24),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-        child: Container(
-          height: 76,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color.alphaBlend(
-                  colors.primary.withValues(alpha: 0.10),
-                  colors.surface,
-                ),
-                Color.alphaBlend(
-                  colors.secondary.withValues(alpha: 0.08),
-                  colors.surface,
-                ),
-              ],
+        return Scaffold(
+          extendBody: true,
+          resizeToAvoidBottomInset: false,
+          backgroundColor: colors.surface,
+          body: IndexedStack(index: _currentIndex, children: pages),
+          floatingActionButton: FloatingActionButton(
+            onPressed: _openAiCoach,
+            backgroundColor: Color.alphaBlend(
+              colors.primary.withValues(alpha: 0.22),
+              colors.surface,
             ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: colors.onSurface.withValues(alpha: 0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.16),
-                blurRadius: 20,
-                offset: Offset(0, 12),
-              ),
-            ],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: colors.primary.withValues(alpha: 0.35)),
+            ),
+            child: Icon(Icons.smart_toy_rounded, color: colors.primary, size: 24),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildNavItem(
-                index: 0,
-                icon: Icons.space_dashboard_rounded,
-                label: 'Home',
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+          bottomNavigationBar: SafeArea(
+            minimum: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            child: Container(
+              height: 76,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color.alphaBlend(
+                      colors.primary.withValues(alpha: 0.10),
+                      colors.surface,
+                    ),
+                    Color.alphaBlend(
+                      colors.secondary.withValues(alpha: 0.08),
+                      colors.surface,
+                    ),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: colors.onSurface.withValues(alpha: 0.12)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.16),
+                    blurRadius: 20,
+                    offset: Offset(0, 12),
+                  ),
+                ],
               ),
-              _buildNavItem(
-                index: 1,
-                icon: Icons.sports_gymnastics_rounded,
-                label: 'Train',
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(
+                    index: 0,
+                    icon: Icons.space_dashboard_rounded,
+                    label: 'Home',
+                  ),
+                  _buildNavItem(
+                    index: 1,
+                    icon: Icons.sports_gymnastics_rounded,
+                    label: 'Train',
+                  ),
+                  _buildNavItem(
+                    index: 2,
+                    icon: Icons.dining_rounded,
+                    label: 'Nutrition',
+                  ),
+                  _buildNavItem(
+                    index: 3,
+                    icon: Icons.insights_rounded,
+                    label: 'History',
+                  ),
+                  _buildProfileNavItem(profile),
+                ],
               ),
-              _buildNavItem(
-                index: 2,
-                icon: Icons.dining_rounded,
-                label: 'Nutrition',
-              ),
-              _buildNavItem(
-                index: 3,
-                icon: Icons.insights_rounded,
-                label: 'History',
-              ),
-              _buildProfileNavItem(),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
-class HomeTab extends StatefulWidget {
+class HomeTab extends StatelessWidget {
   const HomeTab({
     super.key,
+    required this.profile,
     required this.onOpenTrain,
     required this.onOpenNutrition,
   });
 
+  final UserModel? profile;
   final VoidCallback onOpenTrain;
   final VoidCallback onOpenNutrition;
 
-  @override
-  State<HomeTab> createState() => _HomeTabState();
-}
-
-class _HomeTabState extends State<HomeTab> {
-  final _auth = AuthService();
-  final _db = DatabaseService();
-  late Future<_HomeData> _homeFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _homeFuture = _load();
-  }
-
-  Future<void> _refresh() async {
-    setState(() => _homeFuture = _load());
-    await _homeFuture;
-  }
-
-  Future<_HomeData> _load() async {
-    final uid = _auth.currentUser!.uid;
-    final profile = await _db.getUserProfile(uid);
-    final workouts = await _db.getRecentWorkoutLogs(uid, limit: 8);
-    final nutrition = await _db.getTodayNutritionLogs(uid);
-    return _HomeData(
-      profile: profile,
-      workouts: workouts,
-      todayNutrition: nutrition,
-    );
-  }
+  static final _db = DatabaseService();
+  static final _auth = AuthService();
 
   int _workoutStreakDays(List<Map<String, dynamic>> workouts) {
     if (workouts.isEmpty) return 0;
@@ -340,151 +323,149 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<_HomeData>(
-      future: _homeFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final data = snapshot.data;
-        if (data == null) return const Center(child: Text('No data'));
+    final uid = _auth.currentUser!.uid;
 
-        final name = (data.profile?.name.isNotEmpty ?? false)
-            ? data.profile!.name
-            : (_auth.currentUser?.email ?? 'Member').split('@').first;
-        final weight =
-            (data.profile?.metrics['weight'] as num?)?.toDouble() ?? 70;
-        final calorieTarget = (weight * 33).round();
-        final proteinTarget = (weight * 2.2).round();
-        final caloriesToday = data.todayNutrition.fold<int>(
-          0,
-          (total, item) => total + ((item['calories'] ?? 0) as num).toInt(),
-        );
-        final proteinToday = data.todayNutrition.fold<int>(
-          0,
-          (total, item) => total + ((item['protein'] ?? 0) as num).toInt(),
-        );
-        final streak = _workoutStreakDays(data.workouts);
-        final latestWorkout = data.workouts.isNotEmpty
-            ? data.workouts.first
-            : null;
-        final latestMeal = data.todayNutrition.isNotEmpty
-            ? data.todayNutrition.first
-            : null;
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _db.getWorkoutLogsStream(uid, limit: 8),
+      builder: (context, workoutSnapshot) {
+        return StreamBuilder<List<Map<String, dynamic>>>(
+          stream: _db.getTodayNutritionLogsStream(uid),
+          builder: (context, nutritionSnapshot) {
+            final workouts = workoutSnapshot.data ?? [];
+            final todayNutrition = nutritionSnapshot.data ?? [];
 
-        return SafeArea(
-          child: RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              padding: const EdgeInsets.all(18),
-              children: [
-                Text(
-                  'Welcome back',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 6),
-                Text(name, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 18),
-                _InfoCard(
-                  title: 'Today Snapshot',
-                  order: 0,
-                  child: Row(
-                    children: [
-                      _MetricBlock(
-                        label: 'Goal',
-                        value: data.profile?.goal ?? 'N/A',
-                      ),
-                      _MetricBlock(label: 'Streak', value: '$streak days'),
-                      _MetricBlock(
-                        label: 'Protein',
-                        value: '$proteinToday/$proteinTarget g',
-                      ),
-                    ],
+            final name = (profile?.name.isNotEmpty ?? false)
+                ? profile!.name
+                : (_auth.currentUser?.email ?? 'Member').split('@').first;
+            final weight = (profile?.metrics['weight'] as num?)?.toDouble() ?? 70;
+            final calorieTarget = (weight * 33).round();
+            final proteinTarget = (weight * 2.2).round();
+            
+            final caloriesToday = todayNutrition.fold<int>(
+              0,
+              (total, item) => total + ((item['calories'] ?? 0) as num).toInt(),
+            );
+            final proteinToday = todayNutrition.fold<int>(
+              0,
+              (total, item) => total + ((item['protein'] ?? 0) as num).toInt(),
+            );
+            
+            final streak = _workoutStreakDays(workouts);
+            final latestWorkout = workouts.isNotEmpty ? workouts.first : null;
+            final latestMeal = todayNutrition.isNotEmpty ? todayNutrition.first : null;
+
+            return SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.all(18),
+                children: [
+                  Text(
+                    'Welcome back',
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
-                ),
-                const SizedBox(height: 14),
-                _InfoCard(
-                  title: 'Quick Actions',
-                  order: 1,
-                  child: Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      _ActionPill(
-                        icon: Icons.fitness_center_rounded,
-                        text: 'Open Train',
-                        onTap: widget.onOpenTrain,
-                      ),
-                      _ActionPill(
-                        icon: Icons.dining_rounded,
-                        text: 'Open Nutrition',
-                        onTap: widget.onOpenNutrition,
-                      ),
-                      _ActionPill(
-                        icon: Icons.tips_and_updates_rounded,
-                        text: 'AI Tip',
-                        onTap: () => _showBottomToast(
-                          context,
-                          AiCoachService.weeklyInsight(
-                            workouts: streak,
-                            avgProtein: proteinToday,
-                            proteinTarget: proteinTarget,
+                  const SizedBox(height: 6),
+                  Text(name, style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 18),
+                  _InfoCard(
+                    title: 'Today Snapshot',
+                    order: 0,
+                    child: Row(
+                      children: [
+                        _MetricBlock(
+                          label: 'Goal',
+                          value: profile?.goal ?? 'N/A',
+                        ),
+                        _MetricBlock(label: 'Streak', value: '$streak days'),
+                        _MetricBlock(
+                          label: 'Protein',
+                          value: '$proteinToday/$proteinTarget g',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _InfoCard(
+                    title: 'Quick Actions',
+                    order: 1,
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        _ActionPill(
+                          icon: Icons.fitness_center_rounded,
+                          text: 'Open Train',
+                          onTap: onOpenTrain,
+                        ),
+                        _ActionPill(
+                          icon: Icons.dining_rounded,
+                          text: 'Open Nutrition',
+                          onTap: onOpenNutrition,
+                        ),
+                        _ActionPill(
+                          icon: Icons.tips_and_updates_rounded,
+                          text: 'AI Tip',
+                          onTap: () => _showBottomToast(
+                            context,
+                            AiCoachService.weeklyInsight(
+                              workouts: streak,
+                              avgProtein: proteinToday,
+                              proteinTarget: proteinTarget,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                _InfoCard(
-                  title: 'Nutrition Today',
-                  order: 2,
-                  child: Column(
-                    children: [
-                      _MacroRow(
-                        label: 'Calories',
-                        current: caloriesToday,
-                        target: calorieTarget,
-                      ),
-                      _MacroRow(
-                        label: 'Protein',
-                        current: proteinToday,
-                        target: proteinTarget,
-                      ),
-                      if (latestMeal != null)
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Latest meal: ${latestMeal['mealName'] ?? 'Meal'}',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
+                  const SizedBox(height: 14),
+                  _InfoCard(
+                    title: 'Nutrition Today',
+                    order: 2,
+                    child: Column(
+                      children: [
+                        _MacroRow(
+                          label: 'Calories',
+                          current: caloriesToday,
+                          target: calorieTarget,
                         ),
-                    ],
+                        _MacroRow(
+                          label: 'Protein',
+                          current: proteinToday,
+                          target: proteinTarget,
+                        ),
+                        if (latestMeal != null)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Latest meal: ${latestMeal['mealName'] ?? 'Meal'}',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                _InfoCard(
-                  title: 'Recent Sessions',
-                  order: 3,
-                  child: latestWorkout == null
-                      ? const Text('No workouts logged yet.')
-                      : ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(
-                            latestWorkout['sessionName'] ?? 'Session',
+                  const SizedBox(height: 14),
+                  _InfoCard(
+                    title: 'Recent Sessions',
+                    order: 3,
+                    child: latestWorkout == null
+                        ? const Text('No workouts logged yet.')
+                        : ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              latestWorkout['sessionName'] ?? 'Session',
+                            ),
+                            subtitle: Text(
+                              '${latestWorkout['completedSets'] ?? 0} sets • ${_fmtDate(_toDate(latestWorkout['createdAt']))}',
+                            ),
+                            trailing: TextButton(
+                              onPressed: onOpenTrain,
+                              child: const Text('Continue'),
+                            ),
                           ),
-                          subtitle: Text(
-                            '${latestWorkout['completedSets'] ?? 0} sets • ${_fmtDate(_toDate(latestWorkout['createdAt']))}',
-                          ),
-                          trailing: TextButton(
-                            onPressed: widget.onOpenTrain,
-                            child: const Text('Continue'),
-                          ),
-                        ),
-                ),
-              ],
-            ),
-          ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -492,7 +473,8 @@ class _HomeTabState extends State<HomeTab> {
 }
 
 class TrainTab extends StatefulWidget {
-  const TrainTab({super.key});
+  const TrainTab({super.key, required this.profile});
+  final UserModel? profile;
 
   @override
   State<TrainTab> createState() => _TrainTabState();
@@ -502,8 +484,6 @@ class _TrainTabState extends State<TrainTab> {
   final _auth = AuthService();
   final _db = DatabaseService();
 
-  UserModel? _profile;
-  bool _loading = true;
   bool _saving = false;
   final Stopwatch _stopwatch = Stopwatch();
   Timer? _ticker;
@@ -516,26 +496,9 @@ class _TrainTabState extends State<TrainTab> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _loadProfile();
-  }
-
-  @override
   void dispose() {
     _ticker?.cancel();
     super.dispose();
-  }
-
-  Future<void> _loadProfile() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-    final profile = await _db.getUserProfile(user.uid);
-    if (!mounted) return;
-    setState(() {
-      _profile = profile;
-      _loading = false;
-    });
   }
 
   void _toggleTimer() {
@@ -553,10 +516,14 @@ class _TrainTabState extends State<TrainTab> {
     setState(() {});
   }
 
-  Future<void> _saveSession() async {
+  void _saveSession() {
     final user = _auth.currentUser;
     if (user == null) return;
-    setState(() => _saving = true);
+    
+    // Performance optimization: Optimistic Update
+    // We navigate away or show success immediately for a fast feel
+    _showBottomToast(context, 'Saving workout in background...');
+    HapticsService.medium();
 
     final completedSets = _session.fold<int>(
       0,
@@ -564,30 +531,26 @@ class _TrainTabState extends State<TrainTab> {
     );
     final durationMinutes = (_elapsedSeconds / 60).ceil();
 
-    try {
-      await _db.logWorkoutSession(
-        user.uid,
-        sessionName: '${_profile?.goal ?? 'Training'} Session',
-        durationMinutes: durationMinutes == 0 ? 1 : durationMinutes,
-        completedSets: completedSets,
-        exercises: _session,
-      );
+    _db.logWorkoutSession(
+      user.uid,
+      sessionName: '${widget.profile?.goal ?? 'Training'} Session',
+      durationMinutes: durationMinutes == 0 ? 1 : durationMinutes,
+      completedSets: completedSets,
+      exercises: _session,
+    ).then((_) {
       HapticsService.success();
-      if (!mounted) return;
-      _showBottomToast(context, 'Workout session saved');
-    } catch (e) {
+      if (mounted) _showBottomToast(context, 'Workout session saved');
+    }).catchError((e) {
       HapticsService.error();
-      if (!mounted) return;
-      _showBottomToast(context, e.toString());
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
+      if (mounted) _showBottomToast(context, 'Failed to save: $e');
+    });
+    
+    // Reset local state immediately for next session if desired, 
+    // or just leave as is. For now, we keep it but the saving feel is instant.
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(18),
@@ -595,7 +558,7 @@ class _TrainTabState extends State<TrainTab> {
           Text('Training', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 6),
           Text(
-            'Goal: ${_profile?.goal ?? 'General Fitness'}',
+            'Goal: ${widget.profile?.goal ?? 'General Fitness'}',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -671,10 +634,10 @@ class _TrainTabState extends State<TrainTab> {
               builder: (context) {
                 final first = _session.first;
                 final suggestion = AiCoachService.workoutSwapSuggestion(
-                  goal: _profile?.goal ?? 'Hypertrophy',
+                  goal: widget.profile?.goal ?? 'Hypertrophy',
                   exercise: first['name'] as String,
                   gymAccess:
-                      (_profile?.lifestyle['gymAccess'] ?? 'Commercial Gym')
+                      (widget.profile?.lifestyle['gymAccess'] ?? 'Commercial Gym')
                           .toString(),
                 );
                 return Text('For ${first['name']}: $suggestion');
@@ -700,7 +663,8 @@ class _TrainTabState extends State<TrainTab> {
 }
 
 class NutritionTab extends StatefulWidget {
-  const NutritionTab({super.key});
+  const NutritionTab({super.key, required this.profile});
+  final UserModel? profile;
 
   @override
   State<NutritionTab> createState() => _NutritionTabState();
@@ -716,17 +680,6 @@ class _NutritionTabState extends State<NutritionTab> {
   final _carbCtrl = TextEditingController();
   final _fatCtrl = TextEditingController();
 
-  UserModel? _profile;
-  List<Map<String, dynamic>> _today = [];
-  bool _loading = true;
-  bool _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
   @override
   void dispose() {
     _mealCtrl.dispose();
@@ -737,20 +690,7 @@ class _NutritionTabState extends State<NutritionTab> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-    final profile = await _db.getUserProfile(user.uid);
-    final today = await _db.getTodayNutritionLogs(user.uid);
-    if (!mounted) return;
-    setState(() {
-      _profile = profile;
-      _today = today;
-      _loading = false;
-    });
-  }
-
-  Future<void> _addMeal() async {
+  void _addMeal() {
     final user = _auth.currentUser;
     if (user == null) return;
 
@@ -759,6 +699,7 @@ class _NutritionTabState extends State<NutritionTab> {
     final protein = int.tryParse(_proteinCtrl.text.trim());
     final carbs = int.tryParse(_carbCtrl.text.trim());
     final fats = int.tryParse(_fatCtrl.text.trim());
+    
     if (name.isEmpty ||
         calories == null ||
         protein == null ||
@@ -769,32 +710,31 @@ class _NutritionTabState extends State<NutritionTab> {
       return;
     }
 
-    setState(() => _saving = true);
-    try {
-      await _db.logNutritionEntry(
-        user.uid,
-        mealName: name,
-        calories: calories,
-        protein: protein,
-        carbs: carbs,
-        fats: fats,
-      );
+    // Performance optimization: Optimistic UI
+    _showBottomToast(context, 'Logging meal...');
+    HapticsService.selection();
+
+    _db.logNutritionEntry(
+      user.uid,
+      mealName: name,
+      calories: calories,
+      protein: protein,
+      carbs: carbs,
+      fats: fats,
+    ).then((_) {
       HapticsService.success();
-      _mealCtrl.clear();
-      _calCtrl.clear();
-      _proteinCtrl.clear();
-      _carbCtrl.clear();
-      _fatCtrl.clear();
-      await _load();
-      if (!mounted) return;
-      _showBottomToast(context, 'Meal logged');
-    } catch (e) {
+      if (mounted) _showBottomToast(context, 'Meal logged');
+    }).catchError((e) {
       HapticsService.error();
-      if (!mounted) return;
-      _showBottomToast(context, e.toString());
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
+      if (mounted) _showBottomToast(context, 'Failed to log: $e');
+    });
+
+    // Clear fields immediately for instant feedback
+    _mealCtrl.clear();
+    _calCtrl.clear();
+    _proteinCtrl.clear();
+    _carbCtrl.clear();
+    _fatCtrl.clear();
   }
 
   Map<String, int> _macroTargets(UserModel? profile) {
@@ -834,328 +774,176 @@ class _NutritionTabState extends State<NutritionTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-
-    final targets = _macroTargets(_profile);
+    final uid = _auth.currentUser!.uid;
+    final targets = _macroTargets(widget.profile);
     final targetCalories = targets['calories']!;
     final targetProtein = targets['protein']!;
     final targetCarbs = targets['carbs']!;
     final targetFats = targets['fats']!;
 
-    final cals = _today.fold<int>(
-      0,
-      (s, e) => s + ((e['calories'] ?? 0) as num).toInt(),
-    );
-    final protein = _today.fold<int>(
-      0,
-      (s, e) => s + ((e['protein'] ?? 0) as num).toInt(),
-    );
-    final carbs = _today.fold<int>(
-      0,
-      (s, e) => s + ((e['carbs'] ?? 0) as num).toInt(),
-    );
-    final fats = _today.fold<int>(
-      0,
-      (s, e) => s + ((e['fats'] ?? 0) as num).toInt(),
-    );
-
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(18),
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        children: [
-          Text('Nutrition', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 4),
-          Text(
-            'Goal mode: ${_profile?.goal ?? 'Hypertrophy'}',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 14),
-          _InfoCard(
-            title: 'Macro Progress',
-            order: 0,
-            child: Column(
-              children: [
-                _MacroRow(
-                  label: 'Calories',
-                  current: cals,
-                  target: targetCalories,
-                ),
-                _MacroRow(
-                  label: 'Protein',
-                  current: protein,
-                  target: targetProtein,
-                ),
-                _MacroRow(label: 'Carbs', current: carbs, target: targetCarbs),
-                _MacroRow(label: 'Fats', current: fats, target: targetFats),
-                const SizedBox(height: 6),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Remaining: '
-                    '${(targetCalories - cals).clamp(0, targetCalories)} kcal, '
-                    'P ${(targetProtein - protein).clamp(0, targetProtein)}g, '
-                    'C ${(targetCarbs - carbs).clamp(0, targetCarbs)}g, '
-                    'F ${(targetFats - fats).clamp(0, targetFats)}g',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          _InfoCard(
-            title: 'Add Meal',
-            order: 1,
-            child: Column(
-              children: [
-                TextField(
-                  controller: _mealCtrl,
-                  decoration: const InputDecoration(labelText: 'Meal name'),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _calCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'kcal'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _proteinCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Protein'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _carbCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Carbs'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _fatCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Fats'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: _saving ? null : _addMeal,
-                  icon: const Icon(Icons.add_circle_rounded),
-                  label: const Text('Log Meal'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          _InfoCard(
-            title: 'AI Meal Suggestion',
-            order: 2,
-            child: Text(
-              AiCoachService.mealSuggestion(
-                remainingCalories: (targetCalories - cals).clamp(
-                  0,
-                  targetCalories,
-                ),
-                remainingProtein: (targetProtein - protein).clamp(
-                  0,
-                  targetProtein,
-                ),
-                remainingCarbs: (targetCarbs - carbs).clamp(0, targetCarbs),
-                remainingFats: (targetFats - fats).clamp(0, targetFats),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          _InfoCard(
-            title: 'Today Entries',
-            order: 3,
-            child: _today.isEmpty
-                ? const Text('No meals logged today.')
-                : Column(
-                    children: _today.map((entry) {
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(entry['mealName']?.toString() ?? 'Meal'),
-                        subtitle: Text(
-                          '${entry['calories']} kcal • P ${entry['protein']} C ${entry['carbs']} F ${entry['fats']}',
-                        ),
-                      );
-                    }).toList(),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class HistoryTab extends StatefulWidget {
-  const HistoryTab({super.key});
-
-  @override
-  State<HistoryTab> createState() => _HistoryTabState();
-}
-
-class _HistoryTabState extends State<HistoryTab> {
-  final _auth = AuthService();
-  final _db = DatabaseService();
-  late Future<_HistoryData> _historyFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _historyFuture = _load();
-  }
-
-  Future<void> _refresh() async {
-    setState(() => _historyFuture = _load());
-    await _historyFuture;
-  }
-
-  Future<_HistoryData> _load() async {
-    final uid = _auth.currentUser!.uid;
-    final workouts = await _db.getRecentWorkoutLogs(uid, limit: 20);
-    final nutrition = await _db.getRecentNutritionLogs(uid, limit: 60);
-    final profile = await _db.getUserProfile(uid);
-    return _HistoryData(
-      workouts: workouts,
-      nutrition: nutrition,
-      profile: profile,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<_HistoryData>(
-      future: _historyFuture,
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _db.getTodayNutritionLogsStream(uid),
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final data = snapshot.data;
-        if (data == null) return const Center(child: Text('No history yet.'));
+        final today = snapshot.data ?? [];
 
-        final weekStart = DateTime.now().subtract(const Duration(days: 7));
-        final workoutsThisWeek = data.workouts.where((w) {
-          final date = _toDate(w['createdAt']);
-          return date != null && date.isAfter(weekStart);
-        }).length;
-
-        final nutritionWeek = data.nutrition.where((n) {
-          final date = _toDate(n['createdAt']);
-          return date != null && date.isAfter(weekStart);
-        }).toList();
-
-        int avgProtein = 0;
-        if (nutritionWeek.isNotEmpty) {
-          final proteinSum = nutritionWeek.fold<int>(
-            0,
-            (total, entry) => total + ((entry['protein'] ?? 0) as num).toInt(),
-          );
-          avgProtein = (proteinSum / 7).round();
-        }
-
-        final weight = ((data.profile?.metrics['weight'] ?? 70) as num)
-            .toDouble();
-        final proteinTarget = (weight * 2.2).round();
-
-        final insight = AiCoachService.weeklyInsight(
-          workouts: workoutsThisWeek,
-          avgProtein: avgProtein,
-          proteinTarget: proteinTarget,
+        final cals = today.fold<int>(
+          0,
+          (s, e) => s + ((e['calories'] ?? 0) as num).toInt(),
+        );
+        final protein = today.fold<int>(
+          0,
+          (s, e) => s + ((e['protein'] ?? 0) as num).toInt(),
+        );
+        final carbs = today.fold<int>(
+          0,
+          (s, e) => s + ((e['carbs'] ?? 0) as num).toInt(),
+        );
+        final fats = today.fold<int>(
+          0,
+          (s, e) => s + ((e['fats'] ?? 0) as num).toInt(),
         );
 
         return SafeArea(
-          child: RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              padding: const EdgeInsets.all(18),
-              children: [
-                Text('History', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 14),
-                _InfoCard(
-                  title: 'Weekly Summary',
-                  order: 0,
-                  child: Row(
-                    children: [
-                      _MetricBlock(
-                        label: 'Workouts',
-                        value: '$workoutsThisWeek',
+          child: ListView(
+            padding: const EdgeInsets.all(18),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: [
+              Text('Nutrition', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 4),
+              Text(
+                'Goal mode: ${widget.profile?.goal ?? 'Hypertrophy'}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 14),
+              _InfoCard(
+                title: 'Macro Progress',
+                order: 0,
+                child: Column(
+                  children: [
+                    _MacroRow(
+                      label: 'Calories',
+                      current: cals,
+                      target: targetCalories,
+                    ),
+                    _MacroRow(
+                      label: 'Protein',
+                      current: protein,
+                      target: targetProtein,
+                    ),
+                    _MacroRow(label: 'Carbs', current: carbs, target: targetCarbs),
+                    _MacroRow(label: 'Fats', current: fats, target: targetFats),
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Remaining: '
+                        '${(targetCalories - cals).clamp(0, targetCalories)} kcal, '
+                        'P ${(targetProtein - protein).clamp(0, targetProtein)}g, '
+                        'C ${(targetCarbs - carbs).clamp(0, targetCarbs)}g, '
+                        'F ${(targetFats - fats).clamp(0, targetFats)}g',
+                        style: Theme.of(context).textTheme.bodyMedium,
                       ),
-                      _MetricBlock(
-                        label: 'Avg Protein',
-                        value: '$avgProtein g',
-                      ),
-                      _MetricBlock(label: 'Target', value: '$proteinTarget g'),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              _InfoCard(
+                title: 'Add Meal',
+                order: 1,
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _mealCtrl,
+                      decoration: const InputDecoration(labelText: 'Meal name'),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _calCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(labelText: 'kcal'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _proteinCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(labelText: 'Protein'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _carbCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(labelText: 'Carbs'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _fatCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(labelText: 'Fats'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: _addMeal,
+                      icon: const Icon(Icons.add_circle_rounded),
+                      label: const Text('Log Meal'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              _InfoCard(
+                title: 'AI Meal Suggestion',
+                order: 2,
+                child: Text(
+                  AiCoachService.mealSuggestion(
+                    remainingCalories: (targetCalories - cals).clamp(
+                      0,
+                      targetCalories,
+                    ),
+                    remainingProtein: (targetProtein - protein).clamp(
+                      0,
+                      targetProtein,
+                    ),
+                    remainingCarbs: (targetCarbs - carbs).clamp(0, targetCarbs),
+                    remainingFats: (targetFats - fats).clamp(0, targetFats),
                   ),
                 ),
-                const SizedBox(height: 14),
-                _InfoCard(
-                  title: 'AI Weekly Insight',
-                  order: 1,
-                  child: Text(insight),
-                ),
-                const SizedBox(height: 14),
-                _InfoCard(
-                  title: 'Recent Workouts',
-                  order: 2,
-                  child: data.workouts.isEmpty
-                      ? const Text('No workouts logged yet.')
-                      : Column(
-                          children: data.workouts.take(6).map((entry) {
-                            final date = _toDate(entry['createdAt']);
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(
-                                entry['sessionName']?.toString() ?? 'Workout',
-                              ),
-                              subtitle: Text(
-                                '${entry['completedSets'] ?? 0} sets • ${_fmtDate(date)}',
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                ),
-                const SizedBox(height: 14),
-                _InfoCard(
-                  title: 'Recent Meals',
-                  order: 3,
-                  child: data.nutrition.isEmpty
-                      ? const Text('No meal history yet.')
-                      : Column(
-                          children: data.nutrition.take(6).map((entry) {
-                            final date = _toDate(entry['createdAt']);
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(
-                                entry['mealName']?.toString() ?? 'Meal',
-                              ),
-                              subtitle: Text(
-                                '${entry['calories']} kcal • ${_fmtDate(date)}',
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 14),
+              _InfoCard(
+                title: 'Today Entries',
+                order: 3,
+                child: today.isEmpty
+                    ? const Text('No meals logged today.')
+                    : Column(
+                        children: today.map((entry) {
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(entry['mealName']?.toString() ?? 'Meal'),
+                            subtitle: Text(
+                              '${entry['calories']} kcal • P ${entry['protein']} C ${entry['carbs']} F ${entry['fats']}',
+                            ),
+                          );
+                        }).toList(),
+                      ),
+              ),
+            ],
           ),
         );
       },
@@ -1163,8 +951,143 @@ class _HistoryTabState extends State<HistoryTab> {
   }
 }
 
+class HistoryTab extends StatelessWidget {
+  const HistoryTab({super.key, required this.profile});
+  final UserModel? profile;
+
+  static final _auth = AuthService();
+  static final _db = DatabaseService();
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = _auth.currentUser!.uid;
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _db.getWorkoutLogsStream(uid, limit: 20),
+      builder: (context, workoutSnapshot) {
+        return StreamBuilder<List<Map<String, dynamic>>>(
+          stream: _db.getNutritionLogsStream(uid, limit: 60),
+          builder: (context, nutritionSnapshot) {
+            final workouts = workoutSnapshot.data ?? [];
+            final nutrition = nutritionSnapshot.data ?? [];
+
+            final weekStart = DateTime.now().subtract(const Duration(days: 7));
+            final workoutsThisWeek = workouts.where((w) {
+              final date = _toDate(w['createdAt']);
+              return date != null && date.isAfter(weekStart);
+            }).length;
+
+            final nutritionWeek = nutrition.where((n) {
+              final date = _toDate(n['createdAt']);
+              return date != null && date.isAfter(weekStart);
+            }).toList();
+
+            int avgProtein = 0;
+            if (nutritionWeek.isNotEmpty) {
+              final proteinSum = nutritionWeek.fold<int>(
+                0,
+                (total, entry) => total + ((entry['protein'] ?? 0) as num).toInt(),
+              );
+              avgProtein = (proteinSum / 7).round();
+            }
+
+            final weight = ((profile?.metrics['weight'] ?? 70) as num).toDouble();
+            final proteinTarget = (weight * 2.2).round();
+
+            final insight = AiCoachService.weeklyInsight(
+              workouts: workoutsThisWeek,
+              avgProtein: avgProtein,
+              proteinTarget: proteinTarget,
+            );
+
+            return SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.all(18),
+                children: [
+                  Text('History', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 14),
+                  _InfoCard(
+                    title: 'Weekly Summary',
+                    order: 0,
+                    child: Row(
+                      children: [
+                        _MetricBlock(
+                          label: 'Workouts',
+                          value: '$workoutsThisWeek',
+                        ),
+                        _MetricBlock(
+                          label: 'Avg Protein',
+                          value: '$avgProtein g',
+                        ),
+                        _MetricBlock(label: 'Target', value: '$proteinTarget g'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _InfoCard(
+                    title: 'AI Weekly Insight',
+                    order: 1,
+                    child: Text(insight),
+                  ),
+                  const SizedBox(height: 14),
+                  _InfoCard(
+                    title: 'Recent Workouts',
+                    order: 2,
+                    child: workouts.isEmpty
+                        ? const Text('No workouts logged yet.')
+                        : Column(
+                            children: workouts.take(6).map((entry) {
+                              final date = _toDate(entry['createdAt']);
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(
+                                  entry['sessionName']?.toString() ?? 'Workout',
+                                ),
+                                subtitle: Text(
+                                  '${entry['completedSets'] ?? 0} sets • ${_fmtDate(date)}',
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                  ),
+                  const SizedBox(height: 14),
+                  _InfoCard(
+                    title: 'Recent Meals',
+                    order: 3,
+                    child: nutrition.isEmpty
+                        ? const Text('No meal history yet.')
+                        : Column(
+                            children: nutrition.take(6).map((entry) {
+                              final date = _toDate(entry['createdAt']);
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(
+                                  entry['mealName']?.toString() ?? 'Meal',
+                                ),
+                                subtitle: Text(
+                                  '${entry['calories']} kcal • ${_fmtDate(date)}',
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
 class ProfileTab extends StatefulWidget {
-  const ProfileTab({super.key, required this.onProfileUpdated});
+  const ProfileTab({
+    super.key,
+    required this.profile,
+    required this.onProfileUpdated,
+  });
+  final UserModel? profile;
   final Future<void> Function() onProfileUpdated;
 
   @override
@@ -1182,13 +1105,45 @@ class _ProfileTabState extends State<ProfileTab> {
   final _weightCtrl = TextEditingController();
   final _sleepCtrl = TextEditingController();
 
-  bool _loading = true;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _initControllers();
+  }
+
+  @override
+  void didUpdateWidget(ProfileTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile != widget.profile) {
+      _initControllers();
+    }
+  }
+
+  void _initControllers() {
+    final p = widget.profile;
+    final user = _auth.currentUser;
+
+    if (_nameCtrl.text.isEmpty && p != null) {
+      _nameCtrl.text = p.name;
+    } else if (_nameCtrl.text.isEmpty && user != null) {
+      _nameCtrl.text = (user.email ?? 'Member').split('@').first;
+    }
+
+    if (_imageCtrl.text.isEmpty && p != null) _imageCtrl.text = p.profileImageUrl ?? '';
+    if (_ageCtrl.text.isEmpty && p != null) {
+      _ageCtrl.text = '${p.metrics['age'] ?? ''}';
+    }
+    if (_heightCtrl.text.isEmpty && p != null) {
+      _heightCtrl.text = '${p.metrics['height'] ?? ''}';
+    }
+    if (_weightCtrl.text.isEmpty && p != null) {
+      _weightCtrl.text = '${p.metrics['weight'] ?? ''}';
+    }
+    if (_sleepCtrl.text.isEmpty && p != null) {
+      _sleepCtrl.text = '${p.lifestyle['sleep'] ?? ''}';
+    }
   }
 
   @override
@@ -1202,52 +1157,32 @@ class _ProfileTabState extends State<ProfileTab> {
     super.dispose();
   }
 
-  Future<void> _load() async {
+  void _save() {
     final user = _auth.currentUser;
     if (user == null) return;
-    final profile = await _db.getUserProfile(user.uid);
-    if (!mounted) return;
 
-    _nameCtrl.text = (profile?.name.isNotEmpty ?? false)
-        ? profile!.name
-        : (user.email ?? 'Member').split('@').first;
-    _imageCtrl.text = profile?.profileImageUrl ?? '';
-    _ageCtrl.text = '${profile?.metrics['age'] ?? ''}';
-    _heightCtrl.text = '${profile?.metrics['height'] ?? ''}';
-    _weightCtrl.text = '${profile?.metrics['weight'] ?? ''}';
-    _sleepCtrl.text = '${profile?.lifestyle['sleep'] ?? ''}';
+    // Performance optimization: Optimistic Update
+    _showBottomToast(context, 'Updating profile...');
+    HapticsService.selection();
 
-    setState(() => _loading = false);
-  }
-
-  Future<void> _save() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-    setState(() => _saving = true);
-
-    try {
-      await _db.updateUserProfileFields(
-        user.uid,
-        name: _nameCtrl.text.trim(),
-        profileImageUrl: _imageCtrl.text.trim(),
-        metrics: {
-          'age': int.tryParse(_ageCtrl.text.trim()) ?? 0,
-          'height': double.tryParse(_heightCtrl.text.trim()) ?? 0.0,
-          'weight': double.tryParse(_weightCtrl.text.trim()) ?? 0.0,
-        },
-        lifestyle: {'sleep': double.tryParse(_sleepCtrl.text.trim()) ?? 7.0},
-      );
-      await widget.onProfileUpdated();
+    _db.updateUserProfileFields(
+      user.uid,
+      name: _nameCtrl.text.trim(),
+      profileImageUrl: _imageCtrl.text.trim(),
+      metrics: {
+        'age': int.tryParse(_ageCtrl.text.trim()) ?? 0,
+        'height': double.tryParse(_heightCtrl.text.trim()) ?? 0.0,
+        'weight': double.tryParse(_weightCtrl.text.trim()) ?? 0.0,
+      },
+      lifestyle: {'sleep': double.tryParse(_sleepCtrl.text.trim()) ?? 7.0},
+    ).then((_) {
       HapticsService.success();
-      if (!mounted) return;
-      _showBottomToast(context, 'Profile updated');
-    } catch (e) {
+      widget.onProfileUpdated();
+      if (mounted) _showBottomToast(context, 'Profile updated');
+    }).catchError((e) {
       HapticsService.error();
-      if (!mounted) return;
-      _showBottomToast(context, e.toString());
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
+      if (mounted) _showBottomToast(context, e.toString());
+    });
   }
 
   @override
@@ -1259,8 +1194,8 @@ class _ProfileTabState extends State<ProfileTab> {
         (_nameCtrl.text.trim().isNotEmpty ? _nameCtrl.text.trim() : email)[0]
             .toUpperCase();
 
-    if (_loading) return const Center(child: CircularProgressIndicator());
-
+    // No loading indicator needed as we have local data or defaults now
+    
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(18),

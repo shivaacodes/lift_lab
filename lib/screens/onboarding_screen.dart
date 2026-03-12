@@ -88,11 +88,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _finishOnboarding() async {
-    if (!_validateCurrentStep()) return;
+    print('DEBUG: _finishOnboarding started');
+    if (!_validateCurrentStep()) {
+      print('DEBUG: Validation failed');
+      return;
+    }
 
     setState(() => _isLoading = true);
     final user = _authService.currentUser;
     if (user == null) {
+      print('DEBUG: User is null');
       if (mounted) {
         setState(() => _isLoading = false);
         _showValidationError('Your session expired. Please log in again.');
@@ -100,6 +105,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       return;
     }
 
+    print('DEBUG: Creating user profile for UID: ${user.uid}');
     final userModel = UserModel(
       uid: user.uid,
       email: user.email ?? '',
@@ -123,16 +129,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
 
     try {
-      await _databaseService.saveUserProfile(userModel);
-      if (mounted) {
-        HapticsService.success();
-        Navigator.of(context).pushReplacementNamed('/home');
-      }
+      print('DEBUG: Calling _databaseService.saveUserProfile (optimistic)');
+      // Do not await here to provide an instant UI experience
+      _databaseService.saveUserProfile(userModel).catchError((e) {
+        print('DEBUG: Background save failed: $e');
+      });
+      
+      HapticsService.success();
+      print('DEBUG: Navigating to /home immediately');
+      Navigator.of(context).pushReplacementNamed('/home');
     } catch (e) {
+      print('DEBUG: Error in _finishOnboarding: $e');
       if (mounted) {
+        setState(() => _isLoading = false);
         _showValidationError(e.toString());
       }
     } finally {
+      print('DEBUG: _finishOnboarding finally block');
       if (mounted) {
         setState(() => _isLoading = false);
       }

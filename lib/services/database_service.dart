@@ -43,7 +43,17 @@ class DatabaseService {
     }
   }
 
-  // Get User Profile
+  // Get User Profile - Real-time Stream
+  Stream<UserModel?> getUserProfileStream(String uid) {
+    return _userDoc(uid).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return UserModel.fromMap(doc.data()!);
+      }
+      return null;
+    });
+  }
+
+  // Legacy Future method for one-time checks (optional but kept for internal use if needed)
   Future<UserModel?> getUserProfile(String uid) async {
     try {
       final DocumentSnapshot<Map<String, dynamic>> doc = await _userDoc(
@@ -112,6 +122,15 @@ class DatabaseService {
     }
   }
 
+  Stream<List<Map<String, dynamic>>> getWorkoutLogsStream(String uid, {int limit = 20}) {
+    return _userDoc(uid)
+        .collection('workout_logs')
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList());
+  }
+
   Future<List<Map<String, dynamic>>> getRecentWorkoutLogs(
     String uid, {
     int limit = 20,
@@ -128,6 +147,15 @@ class DatabaseService {
     }
   }
 
+  Stream<List<Map<String, dynamic>>> getNutritionLogsStream(String uid, {int limit = 40}) {
+    return _userDoc(uid)
+        .collection('nutrition_logs')
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList());
+  }
+
   Future<List<Map<String, dynamic>>> getRecentNutritionLogs(
     String uid, {
     int limit = 40,
@@ -142,6 +170,20 @@ class DatabaseService {
     } catch (_) {
       return <Map<String, dynamic>>[];
     }
+  }
+
+  Stream<List<Map<String, dynamic>>> getTodayNutritionLogsStream(String uid) {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day);
+    final end = start.add(const Duration(days: 1));
+
+    return _userDoc(uid)
+        .collection('nutrition_logs')
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('createdAt', isLessThan: Timestamp.fromDate(end))
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList());
   }
 
   Future<List<Map<String, dynamic>>> getTodayNutritionLogs(String uid) async {

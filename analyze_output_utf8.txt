@@ -1,0 +1,27 @@
+﻿Analyzing lift_lab...                                           
+
+   info - Don't invoke 'print' in production code - lib\services\database_service.dart:219:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\database_service.dart:268:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\database_service.dart:271:7 - avoid_print
+warning - Unused import: 'package:cloud_firestore/cloud_firestore.dart' - scripts\seed_routines.dart:1:8 - unused_import
+warning - Unused import: 'package:firebase_core/firebase_core.dart' - scripts\seed_routines.dart:2:8 - unused_import
+
+flutter : 5 issues 
+found. (ran in 2.4s)
+At line:1 char:1
++ flutter analyze 
+--no-pub > 
+analyze_output.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (5 issues foun   
+ d. (ran in 2.4s):S    
+tring) [], RemoteE    
+xception
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 

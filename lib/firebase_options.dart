@@ -21,10 +21,7 @@ class DefaultFirebaseOptions {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for android - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android;
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
@@ -66,5 +63,13 @@ class DefaultFirebaseOptions {
     projectId: 'liftlab-9de39',
     storageBucket: 'liftlab-9de39.firebasestorage.app',
     iosBundleId: 'com.shivasajay.liftlab',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyA3tVnBv5wKfALtUTeTEag2sq79a8l4cS8',
+    appId: '1:919980264785:android:0d1f33a1d8e6011d4cd770',
+    messagingSenderId: '919980264785',
+    projectId: 'liftlab-9de39',
+    storageBucket: 'liftlab-9de39.firebasestorage.app',
   );
 }

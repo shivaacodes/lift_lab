@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lift_lab/firebase_options.dart';
 import 'package:lift_lab/theme.dart';
 import 'package:lift_lab/screens/splash_screen.dart';
@@ -11,8 +12,16 @@ import 'package:lift_lab/services/auth_service.dart';
 import 'package:lift_lab/services/database_service.dart';
 import 'package:lift_lab/services/theme_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  // Enable offline persistence
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
   runApp(const LiftLabApp());
 }
 
@@ -110,8 +119,8 @@ class _AppGate extends StatelessWidget {
               return const IntroPagerScreen();
             }
 
-            return FutureBuilder(
-              future: databaseService.getUserProfile(user.uid),
+            return StreamBuilder(
+              stream: databaseService.getUserProfileStream(user.uid),
               builder: (context, profileSnapshot) {
                 if (profileSnapshot.connectionState ==
                     ConnectionState.waiting) {
