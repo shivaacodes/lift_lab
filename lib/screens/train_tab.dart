@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:confetti/confetti.dart';
 import 'package:lift_lab/models/user_model.dart';
 import 'package:lift_lab/services/auth_service.dart';
 import 'package:lift_lab/services/database_service.dart';
@@ -17,6 +18,7 @@ class TrainTab extends StatefulWidget {
 class _TrainTabState extends State<TrainTab> {
   final _auth = AuthService();
   final _db = DatabaseService();
+  late ConfettiController _confettiController;
 
   // Workout plan state
   List<Map<String, dynamic>>? _todayExercises;
@@ -28,10 +30,13 @@ class _TrainTabState extends State<TrainTab> {
   // Session tracking
   late List<int> _doneSets; // tracks completed sets per exercise
   bool _savingSession = false;
+  bool _sessionSuccess = false;
 
   @override
   void initState() {
+
     super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
     _applyProtocolPlan();
   }
 
@@ -45,8 +50,10 @@ class _TrainTabState extends State<TrainTab> {
 
   @override
   void dispose() {
+    _confettiController.dispose();
     super.dispose();
   }
+
 
   int get _todayDayIndex => DateTime.now().weekday;
 
@@ -136,14 +143,29 @@ class _TrainTabState extends State<TrainTab> {
 
     final completedSets = _doneSets.fold(0, (a, b) => a + b);
 
+    // Calculate state before resetting or showing success
+    final totalSets = _todayExercises!.fold<int>(0, (a, e) => a + ((e['sets'] as num?)?.toInt() ?? 3));
+    final allComplete = completedSets >= totalSets;
+
     // ⚡ Optimistic UI Update: Reset state and show success immediately
     HapticsService.success();
+    
     if (mounted) {
-      showBottomToast(context, '🔥 SESSION CRUSHED! — $totalBurned kcal burned!', isSuccess: true);
+      if (allComplete) {
+        _confettiController.play();
+        showBottomToast(context, '🏆 SESSION COMPLETED! — Total $totalBurned kcal!', isSuccess: true);
+      } else {
+        showBottomToast(context, '✅ PROGRESS SAVED! — $totalBurned kcal tracked.', isSuccess: true);
+      }
+      
       setState(() {
         _savingSession = false; // Reset loading state instantly
+        if (allComplete) _sessionSuccess = true; // Mark as success only if full
       });
     }
+
+
+
     
     // Refresh progress from server to ensure perfect sync
     _syncTodayProgress();
@@ -295,23 +317,43 @@ class _TrainTabState extends State<TrainTab> {
     final totalSets = exercises.fold<int>(0, (a, e) => a + ((e['sets'] as num?)?.toInt() ?? 3));
     final allComplete = totalDone >= totalSets;
 
-    return SafeArea(
-      child: Column(
-        children: [
-          _buildTopBar(theme),
-          _buildProtocolHeader(theme),
-          _buildSessionProgress(theme, totalDone, totalSets),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(22, 10, 22, 140),
-              itemCount: exercises.length,
-              itemBuilder: (_, i) => _buildExerciseCard(i, exercises[i]),
-            ),
+    return Stack(
+      alignment: Alignment.topCenter,
+      children: [
+        SafeArea(
+          child: Column(
+            children: [
+              _buildTopBar(theme),
+              _buildProtocolHeader(theme),
+              _buildSessionProgress(theme, totalDone, totalSets),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(22, 10, 22, 140),
+                  itemCount: exercises.length,
+                  itemBuilder: (_, i) => _buildExerciseCard(i, exercises[i]),
+                ),
+              ),
+              _buildBottomAction(theme, totalDone, allComplete),
+            ],
           ),
-          _buildBottomAction(theme, totalDone, allComplete),
-        ],
-      ),
+        ),
+        ConfettiWidget(
+          confettiController: _confettiController,
+          blastDirectionality: BlastDirectionality.explosive,
+          shouldLoop: false,
+          colors: const [
+            Colors.green,
+            Colors.blue,
+            Colors.pink,
+            Colors.orange,
+            Colors.purple,
+          ],
+          numberOfParticles: 20,
+          gravity: 0.1,
+        ),
+      ],
     );
+
   }
 
   Widget _buildTopBar(ThemeData theme) {
@@ -429,8 +471,9 @@ class _TrainTabState extends State<TrainTab> {
           ],
         ),
         child: ElevatedButton.icon(
-          onPressed: (_savingSession || totalDone == 0) ? null : _finishSession,
+          onPressed: (_savingSession || totalDone == 0 || _sessionSuccess) ? null : _finishSession,
           style: ElevatedButton.styleFrom(
+
             backgroundColor: allComplete ? Colors.green : theme.colorScheme.primary,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           ),
@@ -438,9 +481,17 @@ class _TrainTabState extends State<TrainTab> {
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
               : Icon(allComplete ? Icons.star_rounded : Icons.check_circle_rounded, size: 24),
           label: Text(
-            _savingSession ? 'WRITING LOG…' : allComplete ? 'FINISH SESSION' : 'SAVE PROGRESS',
+            _savingSession 
+                ? 'WRITING LOG…' 
+                : _sessionSuccess 
+                    ? 'COMPLETED' 
+                    : allComplete 
+                        ? 'FINISH SESSION' 
+                        : 'SAVE PROGRESS',
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, letterSpacing: 0.5),
           ),
+
+
         ),
       ),
     );
