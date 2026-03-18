@@ -73,26 +73,46 @@ class DatabaseService {
     required String sessionName,
     required int durationMinutes,
     required int completedSets,
+    required int totalBurnedKcal,
     required List<Map<String, dynamic>> exercises,
   }) async {
     try {
-      await _userDoc(uid).collection('workout_logs').add({
-        'sessionName': sessionName,
-        'durationMinutes': durationMinutes,
-        'completedSets': completedSets,
-        'exercises': exercises,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      await logActivity(uid, 'workout', {
-        'sessionName': sessionName,
-        'durationMinutes': durationMinutes,
-        'completedSets': completedSets,
-      });
+      await Future.wait([
+        _userDoc(uid).collection('workout_logs').add({
+          'sessionName': sessionName,
+          'durationMinutes': durationMinutes,
+          'completedSets': completedSets,
+          'totalBurnedKcal': totalBurnedKcal,
+          'exercises': exercises,
+          'createdAt': FieldValue.serverTimestamp(),
+        }),
+        logActivity(uid, 'workout', {
+          'sessionName': sessionName,
+          'durationMinutes': durationMinutes,
+          'completedSets': completedSets,
+          'totalBurnedKcal': totalBurnedKcal,
+        }),
+      ]);
     } catch (e) {
       throw 'Error logging workout session: $e';
     }
   }
+
+  /// Saves a Groq-generated workout plan to Firestore (cached per user).
+  Future<void> saveWorkoutPlan(String uid, Map<String, dynamic> plan) async {
+    await _userDoc(uid).set({'workoutPlan': plan}, SetOptions(merge: true));
+  }
+
+  /// Retrieves the cached workout plan for a user, or null if none exists.
+  Future<Map<String, dynamic>?> getWorkoutPlan(String uid) async {
+    final doc = await _userDoc(uid).get();
+    if (!doc.exists) return null;
+    final data = doc.data();
+    if (data == null || data['workoutPlan'] == null) return null;
+    return Map<String, dynamic>.from(data['workoutPlan'] as Map);
+  }
+
+
 
   Future<void> logNutritionEntry(
     String uid, {
@@ -103,20 +123,21 @@ class DatabaseService {
     required int fats,
   }) async {
     try {
-      await _userDoc(uid).collection('nutrition_logs').add({
-        'mealName': mealName,
-        'calories': calories,
-        'protein': protein,
-        'carbs': carbs,
-        'fats': fats,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      await logActivity(uid, 'nutrition', {
-        'mealName': mealName,
-        'calories': calories,
-        'protein': protein,
-      });
+      await Future.wait([
+        _userDoc(uid).collection('nutrition_logs').add({
+          'mealName': mealName,
+          'calories': calories,
+          'protein': protein,
+          'carbs': carbs,
+          'fats': fats,
+          'createdAt': FieldValue.serverTimestamp(),
+        }),
+        logActivity(uid, 'nutrition', {
+          'mealName': mealName,
+          'calories': calories,
+          'protein': protein,
+        }),
+      ]);
     } catch (e) {
       throw 'Error logging nutrition entry: $e';
     }
@@ -204,6 +225,23 @@ class DatabaseService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getTodayWorkoutLogs(String uid) async {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day);
+    final end = start.add(const Duration(days: 1));
+
+    try {
+      final snapshot = await _userDoc(uid)
+          .collection('workout_logs')
+          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+          .where('createdAt', isLessThan: Timestamp.fromDate(end))
+          .get();
+      return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+    } catch (_) {
+      return <Map<String, dynamic>>[];
+    }
+  }
+
   // Log user activity for timeline
   Future<void> logActivity(
     String uid,
@@ -221,96 +259,5 @@ class DatabaseService {
     }
   }
 
-  // Get today's routine from the global 'routines' collection in Firestore
-  Future<Map<String, dynamic>> getDailyRoutine() async {
-    final int weekday = DateTime.now().weekday; // 1 = Monday, 7 = Sunday
-    String dayType = 'Rest Day';
-
-    if (weekday == DateTime.monday || weekday == DateTime.thursday) {
-      dayType = 'Push Day';
-    } else if (weekday == DateTime.tuesday || weekday == DateTime.friday) {
-      dayType = 'Pull Day';
-    } else if (weekday == DateTime.wednesday || weekday == DateTime.saturday) {
-      dayType = 'Leg Day';
-    }
-
-    if (dayType == 'Rest Day') {
-      return {'dayName': 'Rest Day', 'exercises': []};
-    }
-
-    try {
-      final snapshot = await _firestore
-          .collection('routines')
-          .doc(dayType.toLowerCase().replaceAll(' ', '_'))
-          .get();
-
-      if (snapshot.exists && snapshot.data() != null) {
-        return snapshot.data()!;
-      } else {
-        // Fallback or trigger seed if missing
-        await seedDailyRoutinesIfEmpty();
-        final retrySnapshot = await _firestore
-            .collection('routines')
-            .doc(dayType.toLowerCase().replaceAll(' ', '_'))
-            .get();
-        if (retrySnapshot.exists && retrySnapshot.data() != null) {
-          return retrySnapshot.data()!;
-        }
-      }
-    } catch (e) {
-      print('Error fetching routine from DB: $e');
-    }
-
-    // Ultimate fallback if offline or DB fails
-    return {'dayName': dayType, 'exercises': []};
-  }
-
-  // Seed the routines into Firestore so they are genuinely coming from the DB
-  Future<void> seedDailyRoutinesIfEmpty() async {
-    try {
-      final pushRef = _firestore.collection('routines').doc('push_day');
-      final pushDoc = await pushRef.get();
-
-      if (!pushDoc.exists) {
-        await pushRef.set({
-          'dayName': 'Push Day',
-          'exercises': [
-            {'name': 'Bench Press', 'details': '4 sets x 8 reps', 'rpe': 'RPE 8'},
-            {'name': 'Overhead Press', 'details': '3 sets x 10 reps', 'rpe': 'RPE 8'},
-            {'name': 'Incline Dumbbell Press', 'details': '3 sets x 10 reps', 'rpe': 'RPE 8'},
-            {'name': 'Tricep Pushdowns', 'details': '3 sets x 12 reps', 'rpe': 'RPE 9'},
-            {'name': 'Lateral Raises', 'details': '4 sets x 15 reps', 'rpe': 'RPE 9'},
-          ],
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-
-        await _firestore.collection('routines').doc('pull_day').set({
-          'dayName': 'Pull Day',
-          'exercises': [
-            {'name': 'Deadlift', 'details': '3 sets x 5 reps', 'rpe': 'RPE 8'},
-            {'name': 'Pull-ups', 'details': '3 sets x 8-10 reps', 'rpe': 'RPE 8'},
-            {'name': 'Barbell Rows', 'details': '3 sets x 10 reps', 'rpe': 'RPE 8'},
-            {'name': 'Face Pulls', 'details': '3 sets x 15 reps', 'rpe': 'RPE 9'},
-            {'name': 'Bicep Curls', 'details': '3 sets x 12 reps', 'rpe': 'RPE 9'},
-          ],
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-
-        await _firestore.collection('routines').doc('leg_day').set({
-          'dayName': 'Leg Day',
-          'exercises': [
-            {'name': 'Squats', 'details': '4 sets x 8 reps', 'rpe': 'RPE 8'},
-            {'name': 'Leg Press', 'details': '3 sets x 10 reps', 'rpe': 'RPE 8'},
-            {'name': 'Romanian Deadlift', 'details': '3 sets x 10 reps', 'rpe': 'RPE 8'},
-            {'name': 'Leg Extensions', 'details': '3 sets x 15 reps', 'rpe': 'RPE 9'},
-            {'name': 'Calf Raises', 'details': '4 sets x 15 reps', 'rpe': 'RPE 9'},
-          ],
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-        print('Successfully seeded 3 daily routines into Firestore.');
-      }
-    } catch (e) {
-      print('Error seeding routines: $e');
-    }
-  }
 }
+

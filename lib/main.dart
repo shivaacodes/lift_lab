@@ -6,11 +6,10 @@ import 'package:lift_lab/theme.dart';
 import 'package:lift_lab/screens/splash_screen.dart';
 import 'package:lift_lab/screens/auth_screen.dart';
 import 'package:lift_lab/screens/onboarding_screen.dart';
-import 'package:lift_lab/intro_pager_screen.dart';
 import 'package:lift_lab/main_navigation_shell.dart';
 import 'package:lift_lab/services/auth_service.dart';
 import 'package:lift_lab/services/database_service.dart';
-import 'package:lift_lab/services/theme_service.dart';
+import 'package:lift_lab/services/database_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,39 +44,34 @@ class _LiftLabAppState extends State<LiftLabApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: ThemeService.themeMode,
-      builder: (context, mode, _) {
-        return MaterialApp(
-          title: 'LiftLab',
-          debugShowCheckedModeBanner: false,
-          theme: LiftLabTheme.lightTheme,
-          darkTheme: LiftLabTheme.darkTheme,
-          themeMode: mode,
-          builder: (context, child) {
-            return GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-              child: child ?? const SizedBox.shrink(),
-            );
-          },
-          routes: {
-            '/login': (_) => const AuthScreen(),
-            '/onboarding': (_) => const OnboardingScreen(),
-            '/home': (_) => const MainNavigationShell(),
-          },
-          home: _AppGate(
-            firebaseInitFuture: _firebaseInitFuture,
-            onRetryFirebaseInit: () {
-              setState(() {
-                _firebaseInitFuture = Firebase.initializeApp(
-                  options: DefaultFirebaseOptions.currentPlatform,
-                );
-              });
-            },
-          ),
+    return MaterialApp(
+      title: 'LiftLab',
+      debugShowCheckedModeBanner: false,
+      theme: LiftLabTheme.lightTheme,
+      darkTheme: LiftLabTheme.darkTheme,
+      themeMode: ThemeMode.light,
+      builder: (context, child) {
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: child ?? const SizedBox.shrink(),
         );
       },
+      routes: {
+        '/login': (_) => const AuthScreen(),
+        '/onboarding': (_) => const OnboardingScreen(),
+        '/home': (_) => const MainNavigationShell(),
+      },
+      home: _AppGate(
+        firebaseInitFuture: _firebaseInitFuture,
+        onRetryFirebaseInit: () {
+          setState(() {
+            _firebaseInitFuture = Firebase.initializeApp(
+              options: DefaultFirebaseOptions.currentPlatform,
+            );
+          });
+        },
+      ),
     );
   }
 }
@@ -116,7 +110,7 @@ class _AppGate extends StatelessWidget {
 
             final user = authSnapshot.data;
             if (user == null) {
-              return const IntroPagerScreen();
+              return const AuthScreen();
             }
 
             return StreamBuilder(

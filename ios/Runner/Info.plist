@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Lift Lab uses your camera to scan food and analyse its nutritional content.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Lift Lab accesses your photo library so you can pick a food photo to analyse.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Lift Lab may save scanned food photos to your library.</string>
 </dict>
 </plist>

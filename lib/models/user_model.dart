@@ -7,6 +7,7 @@ class UserModel {
   final String experienceLevel;
   final Map<String, dynamic> metrics; // age, height, weight, bodyFat
   final Map<String, dynamic> lifestyle; // sleep, activityLevel, gymAccess
+  final Map<String, dynamic>? protocol; // AI-generated plan
 
   UserModel({
     required this.uid,
@@ -17,6 +18,7 @@ class UserModel {
     required this.experienceLevel,
     required this.metrics,
     required this.lifestyle,
+    this.protocol,
   });
 
   Map<String, dynamic> toMap() {
@@ -29,6 +31,7 @@ class UserModel {
       'experienceLevel': experienceLevel,
       'metrics': metrics,
       'lifestyle': lifestyle,
+      'protocol': protocol,
       'createdAt': DateTime.now().toIso8601String(),
     };
   }
@@ -43,6 +46,7 @@ class UserModel {
       experienceLevel: map['experienceLevel'] ?? '',
       metrics: Map<String, dynamic>.from(map['metrics'] ?? {}),
       lifestyle: Map<String, dynamic>.from(map['lifestyle'] ?? {}),
+      protocol: map['protocol'] != null ? Map<String, dynamic>.from(map['protocol']) : null,
     );
   }
 }
