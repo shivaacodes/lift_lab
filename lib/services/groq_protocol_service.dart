@@ -192,6 +192,86 @@ class GroqProtocolService {
       ]},
       {'day': 7, 'label': 'Protocol Rest (Sunday)', 'exercises': []},
     ],
+    'hypertrophy_female': [
+      {'day': 1, 'label': 'Glute & Leg Priority', 'exercises': [
+        {'name': 'Hip Thrusts', 'sets': 4, 'reps': '10-12', 'burnKcal': 50},
+        {'name': 'RDLs', 'sets': 3, 'reps': '12', 'burnKcal': 45},
+        {'name': 'Bulgarian Split Squats', 'sets': 3, 'reps': '10/side', 'burnKcal': 50},
+        {'name': 'Kickbacks (Cable)', 'sets': 3, 'reps': '15/side', 'burnKcal': 25},
+        {'name': 'Abductors', 'sets': 3, 'reps': '15-20', 'burnKcal': 20},
+      ]},
+      {'day': 2, 'label': 'Upper Body (Sculpt Focus)', 'exercises': [
+        {'name': 'Lat Pulldowns', 'sets': 3, 'reps': '12', 'burnKcal': 35},
+        {'name': 'DB Shoulder Press', 'sets': 3, 'reps': '10-12', 'burnKcal': 30},
+        {'name': 'Incline DB Bench', 'sets': 3, 'reps': '12', 'burnKcal': 35},
+        {'name': 'Lateral Raises', 'sets': 3, 'reps': '15-20', 'burnKcal': 25},
+        {'name': 'Tricep Extensions', 'sets': 3, 'reps': '15', 'burnKcal': 20},
+      ]},
+      {'day': 3, 'label': 'Lower Body Volume', 'exercises': [
+        {'name': 'Goblet Squats', 'sets': 4, 'reps': '12-15', 'burnKcal': 45},
+        {'name': 'Lunges', 'sets': 3, 'reps': '12/side', 'burnKcal': 40},
+        {'name': 'Leg Press', 'sets': 3, 'reps': '15', 'burnKcal': 50},
+        {'name': 'Hamstring Curls', 'sets': 3, 'reps': '15', 'burnKcal': 30},
+        {'name': 'Calf Raises', 'sets': 3, 'reps': '20', 'burnKcal': 20},
+      ]},
+      {'day': 4, 'label': 'Active Recovery / Core', 'exercises': [
+        {'name': 'Yoga / Mobility', 'sets': 1, 'reps': '20 min', 'burnKcal': 60},
+        {'name': 'Plank', 'sets': 3, 'reps': '60s', 'burnKcal': 15},
+        {'name': 'Bicycle Crunches', 'sets': 3, 'reps': '20', 'burnKcal': 20},
+        {'name': 'Dead Bug', 'sets': 3, 'reps': '15', 'burnKcal': 15},
+      ]},
+      {'day': 5, 'label': 'Full Body Tone', 'exercises': [
+        {'name': 'Single Leg DL', 'sets': 3, 'reps': '12/side', 'burnKcal': 40},
+        {'name': 'Push Ups (Knee opt)', 'sets': 3, 'reps': 'Max', 'burnKcal': 30},
+        {'name': 'Seated Rows', 'sets': 3, 'reps': '12', 'burnKcal': 35},
+        {'name': 'Sumo Squats', 'sets': 3, 'reps': '15', 'burnKcal': 45},
+        {'name': 'Curtsy Lunges', 'sets': 3, 'reps': '12/side', 'burnKcal': 35},
+      ]},
+      {'day': 6, 'label': 'Glute Finisher & HIIT', 'exercises': [
+        {'name': 'Frog Pumps', 'sets': 3, 'reps': '30', 'burnKcal': 25},
+        {'name': 'Mountain Climbers', 'sets': 3, 'reps': '45s', 'burnKcal': 35},
+        {'name': 'Jump Squats', 'sets': 3, 'reps': '15', 'burnKcal': 45},
+        {'name': 'Stair Climber', 'sets': 1, 'reps': '5 min', 'burnKcal': 80},
+      ]},
+      {'day': 7, 'label': 'Rest Day', 'exercises': []},
+    ],
+    'longevity_master': [
+      {'day': 1, 'label': 'Functional Mobility A', 'exercises': [
+        {'name': 'Wall Slides', 'sets': 3, 'reps': '12', 'burnKcal': 15},
+        {'name': 'Cat-Cow', 'sets': 3, 'reps': '15', 'burnKcal': 10},
+        {'name': 'Bird-Dogs', 'sets': 3, 'reps': '10/side', 'burnKcal': 20},
+        {'name': 'Single Leg Stance', 'sets': 3, 'reps': '30s/side', 'burnKcal': 15},
+        {'name': 'Brisk Walk', 'sets': 1, 'reps': '15 min', 'burnKcal': 100},
+      ]},
+      {'day': 2, 'label': 'Joint Stability (Strength)', 'exercises': [
+        {'name': 'Goblet Squats (Slow)', 'sets': 3, 'reps': '10', 'burnKcal': 40},
+        {'name': 'Resistance Band Rows', 'sets': 3, 'reps': '15', 'burnKcal': 30},
+        {'name': 'Step Ups', 'sets': 3, 'reps': '10/side', 'burnKcal': 35},
+        {'name': 'Dead Bug (Core)', 'sets': 3, 'reps': '12', 'burnKcal': 15},
+        {'name': 'Glute Bridge', 'sets': 3, 'reps': '15', 'burnKcal': 20},
+      ]},
+      {'day': 3, 'label': 'Active Recovery', 'exercises': [
+        {'name': 'Stretching Flow', 'sets': 1, 'reps': '20 min', 'burnKcal': 50},
+        {'name': 'Stationary Bike (Easy)', 'sets': 1, 'reps': '10 min', 'burnKcal': 70},
+      ]},
+      {'day': 4, 'label': 'Functional Mobility B', 'exercises': [
+        {'name': 'Thoracic Rotation', 'sets': 3, 'reps': '10/side', 'burnKcal': 15},
+        {'name': 'Wall Push Ups', 'sets': 3, 'reps': '12', 'burnKcal': 25},
+        {'name': 'Farmer’s Walk', 'sets': 3, 'reps': '30m', 'burnKcal': 30},
+        {'name': 'Hip Circles', 'sets': 3, 'reps': '10/side', 'burnKcal': 15},
+      ]},
+      {'day': 5, 'label': 'Resistance (Master Focus)', 'exercises': [
+        {'name': 'Trap Bar Deadlift (Light)', 'sets': 3, 'reps': '8', 'burnKcal': 45},
+        {'name': 'Incline Push Ups', 'sets': 3, 'reps': '10', 'burnKcal': 30},
+        {'name': 'Dumbbell Rows', 'sets': 3, 'reps': '12', 'burnKcal': 35},
+        {'name': 'Pallof Press', 'sets': 3, 'reps': '12/side', 'burnKcal': 20},
+      ]},
+      {'day': 6, 'label': 'LISS Cardio', 'exercises': [
+        {'name': 'Swimming or Walking', 'sets': 1, 'reps': '30 min', 'burnKcal': 200},
+      ]},
+      {'day': 7, 'label': 'Rest Day', 'exercises': []},
+    ],
+
   };
 
   /// Generates a comprehensive health protocol (Nutrition + Workout Strategy)
@@ -211,7 +291,7 @@ class GroqProtocolService {
             {
               'role': 'system',
               'content':
-                  'JSON ONLY. NO CONVERSATION. Available template_id list: [hypertrophy_ppl, strength_upper_lower, fat_loss_circuit, longevity_functional]. Select ONE. 6-day split (Mon-Sat are work days, Sun is rest). Format: {"nutrition":{"calories":2500,"protein":180,"carbs":300,"fats":80},"workout":{"focus":"Hypertrophy","priority":"Heavy Compounding","template_id":"hypertrophy_ppl"}}'
+                  'JSON ONLY. NO CONVERSATION. Available template_id list: [hypertrophy_ppl, strength_upper_lower, fat_loss_circuit, longevity_functional, hypertrophy_female, longevity_master]. Select ONE based on Goal, Age, and Gender. 6-day split (Mon-Sat are work days, Sun is rest). Format: {"nutrition":{"calories":2500,"protein":180,"carbs":300,"fats":80},"workout":{"focus":"Hypertrophy","priority":"Heavy Compounding","template_id":"hypertrophy_ppl"}}'
             },
             {'role': 'user', 'content': prompt},
           ],
@@ -233,13 +313,16 @@ class GroqProtocolService {
       // Hybrid Merge: AI Strategy + Local Template
       final templateId = aiResponse['workout']?['template_id'] ?? 'hypertrophy_ppl';
       final List<Map<String, dynamic>> weeklyPlan = _workoutTemplates[templateId] ?? _workoutTemplates['hypertrophy_ppl']!;
+      
+      // Dynamic Personalization Layer: Adjust volume based on age
+      final personalizedPlan = _personalizeVolume(weeklyPlan, profile.metrics['age'] ?? 25);
 
       return {
         'nutrition': aiResponse['nutrition'],
         'workout': {
           'focus': aiResponse['workout']?['focus'] ?? 'General',
           'priority': aiResponse['workout']?['priority'] ?? 'Foundation',
-          'weekly_plan': weeklyPlan,
+          'weekly_plan': personalizedPlan,
         }
       };
     } catch (e) {
@@ -255,4 +338,72 @@ class GroqProtocolService {
       };
     }
   }
+
+  /// Adjusts workout volume (reps/intensity) based on biological age for longevity/safety.
+  static List<Map<String, dynamic>> _personalizeVolume(List<Map<String, dynamic>> plan, int age) {
+    if (age < 45) return plan; // No adjustments for younger adults
+
+    return plan.map((day) {
+      final exercises = List<Map<String, dynamic>>.from(day['exercises'] ?? []);
+      final personalizedExercises = exercises.map((ex) {
+        final Map<String, dynamic> personalized = Map.from(ex);
+        
+        // Strategy: Higher Reps, Lower Stress for Masters (45+)
+        if (age >= 45 && age < 60) {
+          personalized['reps'] = '${personalized['reps']} (+2)'; 
+        } else if (age >= 60) {
+          personalized['reps'] = '${personalized['reps']} (+4)';
+          personalized['sets'] = (personalized['sets'] as int) > 2 ? personalized['sets'] - 1 : personalized['sets'];
+        }
+        
+        return personalized;
+      }).toList();
+      
+      return {...day, 'exercises': personalizedExercises};
+    }).toList();
+  }
+
+  /// Generates a hype-inducing tweet for a completed workout session.
+  static Future<String> generateShareTweet({
+    required String sessionName,
+    required int totalBurned,
+    required int completedSets,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(_apiUrl),
+
+        headers: {
+          'Authorization': 'Bearer ${Secrets.groqApiKey}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'model': 'llama-3.3-70b-versatile',
+          'messages': [
+            {
+              'role': 'system',
+              'content':
+                  'You are a hype-man for a fitness app called Lift Lab. Generate a short, high-energy tweet (max 200 chars) for a user who just finished a workout. Include the stats provided. Use emojis. ONLY return the tweet text, no quotes or conversation.'
+            },
+            {
+              'role': 'user',
+              'content': 'Session: $sessionName, Burned: $totalBurned kcal, Sets: $completedSets'
+            },
+          ],
+          'temperature': 0.7,
+          'max_tokens': 100,
+        }),
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['choices'][0]['message']['content']?.toString().trim() ?? "Just crushed another workout at Lift Lab! 🔥";
+      }
+      return "Just crushed a $sessionName session! $totalBurned kcal down. 💪 #LiftLab";
+    } catch (e) {
+      return "Workout complete! $totalBurned kcal burned. #LiftLab";
+    }
+  }
 }
+
+

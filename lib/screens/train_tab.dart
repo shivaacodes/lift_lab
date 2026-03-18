@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:lift_lab/models/user_model.dart';
 import 'package:lift_lab/services/auth_service.dart';
 import 'package:lift_lab/services/database_service.dart';
+import 'package:lift_lab/services/groq_protocol_service.dart';
 import 'package:lift_lab/services/haptics_service.dart';
 import 'package:lift_lab/widgets/app_widgets.dart';
+
 
 class TrainTab extends StatefulWidget {
   const TrainTab({super.key, required this.profile});
@@ -189,7 +192,41 @@ class _TrainTabState extends State<TrainTab> {
     }
   }
 
+  Future<void> _shareToX() async {
+    if (_todayExercises == null) return;
+    
+    setState(() => _savingSession = true);
+    
+    // 1. Calculate stats
+    int totalBurned = 0;
+    for (int i = 0; i < _todayExercises!.length; i++) {
+      final ex = _todayExercises![i];
+      final target = (ex['sets'] as num?)?.toInt() ?? 3;
+      final burnPerSet = ((ex['burnKcal'] ?? 30) as num).toDouble() / target;
+      totalBurned += (_doneSets[i] * burnPerSet).round();
+    }
+    final completedSets = _doneSets.fold(0, (a, b) => a + b);
+
+    // 2. Generate AI Tweet
+    final tweet = await GroqProtocolService.generateShareTweet(
+      sessionName: _todayLabel,
+      totalBurned: totalBurned,
+      completedSets: completedSets,
+    );
+
+    setState(() => _savingSession = false);
+
+    // 3. Launch Twitter
+    final twitterUrl = Uri.parse("https://twitter.com/intent/tweet?text=${Uri.encodeComponent(tweet)}");
+    if (await canLaunchUrl(twitterUrl)) {
+      await launchUrl(twitterUrl);
+    } else {
+      if (mounted) showBottomToast(context, "Could not open X", isSuccess: false);
+    }
+  }
+
   Widget _buildRestDay() {
+
     final theme = Theme.of(context);
     return Center(
       child: Padding(
@@ -455,6 +492,47 @@ class _TrainTabState extends State<TrainTab> {
   }
 
   Widget _buildBottomAction(ThemeData theme, int totalDone, bool allComplete) {
+    if (_sessionSuccess) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(22, 0, 22, 24),
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: const Center(
+                  child: Text(
+                    'SESSION COMPLETED',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black45),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              height: 64,
+              width: 64,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: IconButton(
+                onPressed: _savingSession ? null : _shareToX,
+                icon: _savingSession
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Icon(Icons.share_rounded, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(22, 0, 22, 24),
       child: Container(
@@ -481,12 +559,12 @@ class _TrainTabState extends State<TrainTab> {
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
               : Icon(allComplete ? Icons.star_rounded : Icons.check_circle_rounded, size: 24),
           label: Text(
-            _savingSession 
-                ? 'WRITING LOG…' 
-                : _sessionSuccess 
-                    ? 'COMPLETED' 
-                    : allComplete 
-                        ? 'FINISH SESSION' 
+            _savingSession
+                ? 'WRITING LOG…'
+                : _sessionSuccess
+                    ? 'COMPLETED'
+                    : allComplete
+                        ? 'FINISH SESSION'
                         : 'SAVE PROGRESS',
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, letterSpacing: 0.5),
           ),
@@ -497,6 +575,8 @@ class _TrainTabState extends State<TrainTab> {
     );
   }
 }
+
+
 
 class _SetControlBtn extends StatelessWidget {
   const _SetControlBtn({required this.icon, this.onPressed});
